@@ -1,0 +1,31 @@
+<Project>
+
+  <PropertyGroup>
+    <Authors>Symbolica</Authors>
+    <Company>Symbolica</Company>
+    <Copyright>Copyright 2021 Symbolica Dev Limited</Copyright>
+    <IncludeSymbols>True</IncludeSymbols>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageProjectUrl>https://github.com/SymbolicaDev/Symbolica.Extensions.Configuration.FSharp</PackageProjectUrl>
+    <PackageTags>Symbolica;FSharp;dotnet;Configuration;Extensions</PackageTags>
+    <PublishRepositoryUrl>True</PublishRepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/SymbolicaDev/Symbolica.Extensions.Configuration.FSharp</RepositoryUrl>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+    <WarnOn>1182;3390;$(WarnOn)</WarnOn>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="True" PackagePath="" Visible="False" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+</Project>
