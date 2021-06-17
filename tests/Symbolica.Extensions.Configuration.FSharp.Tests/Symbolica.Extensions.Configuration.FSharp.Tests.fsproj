@@ -16,6 +16,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="FsCheckExtensions.fs" />
-    <Compile Include="ConfigTests.fs" />
+    <Compile Include="BindResultTests.fs" />
+    <Compile Include="SectionStub.fs" />
+    <Compile Include="BinderTests.fs" />
+    <Compile Include="DecodeTests.fs" />
+    <Compile Include="BuildersTests.fs" />
   </ItemGroup>
 </Project>

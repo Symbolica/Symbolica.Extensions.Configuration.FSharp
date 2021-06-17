@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AssemblyName>Symbolica.Extensions.Configuration.FSharp</AssemblyName>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -9,6 +9,10 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="5.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Config.fs" />
+    <Compile Include="ConfigurationExtensions.fs" />
+    <Compile Include="BindResult.fs" />
+    <Compile Include="Binder.fs" />
+    <Compile Include="Decode.fs" />
+    <Compile Include="Builders.fs" />
   </ItemGroup>
 </Project>
