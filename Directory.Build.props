@@ -5,6 +5,7 @@
     <Company>Symbolica</Company>
     <Copyright>Copyright 2021 Symbolica Dev Limited</Copyright>
     <IncludeSymbols>True</IncludeSymbols>
+    <PackageIcon>Icon.png</PackageIcon>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageProjectUrl>https://github.com/SymbolicaDev/Symbolica.Extensions.Configuration.FSharp</PackageProjectUrl>
     <PackageTags>Symbolica;FSharp;dotnet;Configuration;Extensions</PackageTags>
@@ -22,6 +23,7 @@
 
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="True" PackagePath="" Visible="False" />
+    <None Include="$(MSBuildThisFileDirectory)Icon.png" Pack="True" PackagePath="" Visible="False" />
   </ItemGroup>
 
   <ItemGroup>
