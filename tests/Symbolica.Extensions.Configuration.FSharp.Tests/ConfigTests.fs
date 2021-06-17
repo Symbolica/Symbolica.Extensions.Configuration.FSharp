@@ -6,15 +6,15 @@ open Microsoft.Extensions.Configuration
 open Swensen.Unquote
 open global.Xunit
 
-module Bind =
+module BindResult =
     module Apply =
-        let (<*>) = Bind.apply
+        let (<*>) = BindResult.apply
 
         [<Property>]
-        let ``should obey identity law`` (w: Bind<int>) = test <@ Success(id) <*> w = w @>
+        let ``should obey identity law`` (w: BindResult<int>) = test <@ Success(id) <*> w = w @>
 
         [<Property>]
-        let ``should obey composition law`` (u: Bind<int -> string>) (v: Bind<bool -> int>) (w: Bind<bool>) =
+        let ``should obey composition law`` (u: BindResult<int -> string>) (v: BindResult<bool -> int>) (w: BindResult<bool>) =
             test <@ Success(<<) <*> u <*> v <*> w = (u <*> (v <*> w)) @>
 
         [<Property>]
@@ -22,7 +22,7 @@ module Bind =
             test <@ Success(f) <*> Success(x) = Success(x |> f) @>
 
         [<Property>]
-        let ``should obey interchange law`` (u: Bind<string -> string>) x =
+        let ``should obey interchange law`` (u: BindResult<string -> string>) x =
             test <@ u <*> Success(x) = (Success(fun f -> x |> f) <*> u) @>
 
         [<Property>]
@@ -38,59 +38,59 @@ module Bind =
             test <@ Failure(e1) <*> Failure(e2) = Failure(e1 |> List.append <| e2) @>
 
     module Bind =
-        let (>>=) m f = Bind.bind f m
+        let (>>=) m f = BindResult.bind f m
 
         [<Property>]
-        let ``should obey left identity`` x (f: int -> Bind<int>) = test <@ Success(x) >>= f = (f x) @>
+        let ``should obey left identity`` x (f: int -> BindResult<int>) = test <@ Success(x) >>= f = (f x) @>
 
         [<Property>]
-        let ``should obey right identity`` (m: Bind<int>) = test <@ m >>= Success = m @>
+        let ``should obey right identity`` (m: BindResult<int>) = test <@ m >>= Success = m @>
 
         [<Property>]
-        let ``should obey associativity`` m (f: bool -> Bind<int>) (g: int -> Bind<string>) =
+        let ``should obey associativity`` m (f: bool -> BindResult<int>) (g: int -> BindResult<string>) =
             test <@ (m >>= f) >>= g = (m >>= (fun x -> x |> f >>= g)) @>
 
         [<Property>]
-        let ``Failure(e) >>= f should be Failure(e)`` e (f: int -> Bind<string>) =
+        let ``Failure(e) >>= f should be Failure(e)`` e (f: int -> BindResult<string>) =
             test <@ Failure(e) >>= f = Failure(e) @>
 
     module DefaultWith =
         [<Property>]
         let ``should obey identity law`` e =
-            test <@ Failure(e) |> Bind.defaultWith id = e @>
+            test <@ Failure(e) |> BindResult.defaultWith id = e @>
 
         [<Property>]
         let ``Success(x) |> defaultWith f should be x`` (x: int) f =
-            test <@ Success(x) |> Bind.defaultWith f = x @>
+            test <@ Success(x) |> BindResult.defaultWith f = x @>
 
         [<Property>]
         let ``Failure(e) |> defaultWith f should be f e`` e (f: string list -> string) =
-            test <@ Failure(e) |> Bind.defaultWith f = (f e) @>
+            test <@ Failure(e) |> BindResult.defaultWith f = (f e) @>
 
     module Map =
         [<Property>]
-        let ``should obey identity law`` (x: Bind<int>) = test <@ x |> Bind.map id = x @>
+        let ``should obey identity law`` (x: BindResult<int>) = test <@ x |> BindResult.map id = x @>
 
         [<Property>]
         let ``should obey associativity law`` x (f: bool -> int) (g: int -> string) =
-            test <@ x |> Bind.map (f >> g) = (x |> Bind.map f |> Bind.map g) @>
+            test <@ x |> BindResult.map (f >> g) = (x |> BindResult.map f |> BindResult.map g) @>
 
     module Zip =
         [<Property>]
         let ```zip Success(a) Success(b) should be Success(a, b)`` (a: int) (b: string) =
-            test <@ Bind.zip (Success(a)) (Success(b)) = Success(a, b) @>
+            test <@ BindResult.zip (Success(a)) (Success(b)) = Success(a, b) @>
 
         [<Property>]
         let ``zip Failure(e1) Success(b) should be Failure(e1)`` e1 (b: string) =
-            test <@ Bind.zip (Failure(e1)) (Success(b)) = Failure(e1) @>
+            test <@ BindResult.zip (Failure(e1)) (Success(b)) = Failure(e1) @>
 
         [<Property>]
         let ```zip Success(a) Failure(e2) should be Failure(e2)`` (a: int) e2 =
-            test <@ Bind.zip (Success(a)) (Failure(e2)) = Failure(e2) @>
+            test <@ BindResult.zip (Success(a)) (Failure(e2)) = Failure(e2) @>
 
         [<Property>]
         let ```zip Failure(e1) Failure(e2) should be Failure(e1 append e2)`` e1 e2 =
-            test <@ Bind.zip (Failure(e1)) (Failure(e2)) = Failure(e1 |> List.append <| e2) @>
+            test <@ BindResult.zip (Failure(e1)) (Failure(e2)) = Failure(e1 |> List.append <| e2) @>
 
 type SectionStub =
     { Children: IConfigurationSection seq

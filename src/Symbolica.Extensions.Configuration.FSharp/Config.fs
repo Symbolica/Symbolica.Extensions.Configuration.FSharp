@@ -2,20 +2,20 @@ module Symbolica.Extensions.Configuration.FSharp
 
 open Microsoft.Extensions.Configuration
 
-type Bind<'a> =
+type BindResult<'a> =
     | Success of 'a
     | Failure of string list
 
-module Bind =
+module BindResult =
 
-    let apply f a : Bind<'b> =
+    let apply f a : BindResult<'b> =
         match f, a with
         | Failure e1, Failure e2 -> Failure(List.append e1 e2)
         | Failure e1, Success _ -> e1 |> Failure
         | Success _, Failure e2 -> e2 |> Failure
         | Success f, Success a -> a |> f |> Success
 
-    let bind f : Bind<'a> -> Bind<'b> =
+    let bind f : BindResult<'a> -> BindResult<'b> =
         function
         | Success x -> x |> f
         | Failure e -> e |> Failure
@@ -25,19 +25,19 @@ module Bind =
         | Success x -> x
         | Failure e -> e |> f
 
-    let map f : Bind<'a> -> Bind<'b> =
+    let map f : BindResult<'a> -> BindResult<'b> =
         function
         | Success x -> x |> f |> Success
         | Failure e -> e |> Failure
 
-    let zip x y : Bind<'a * 'b> =
+    let zip x y : BindResult<'a * 'b> =
         match x, y with
         | Failure e1, Failure e2 -> Failure(List.append e1 e2)
         | Failure e1, Success _ -> e1 |> Failure
         | Success _, Failure e2 -> e2 |> Failure
         | Success a, Success b -> Success(a, b)
 
-type Binder<'a> = Binder of (IConfiguration -> Bind<'a>)
+type Binder<'a> = Binder of (IConfiguration -> BindResult<'a>)
 
 module Binder =
     let ofBind b = Binder(fun _ -> b)
@@ -47,10 +47,10 @@ module Binder =
     let eval config (b: Binder<'a>) = (run b) config
 
     let apply (f: Binder<'a -> 'b>) (a: Binder<'a>) : Binder<'b> =
-        Binder(fun config -> Bind.apply (f |> eval config) (a |> eval config))
+        Binder(fun config -> BindResult.apply (f |> eval config) (a |> eval config))
 
     let bind (f: 'a -> Binder<'b>) (m: Binder<'a>) : Binder<'b> =
-        Binder(fun config -> m |> eval config |> Bind.bind (f >> eval config))
+        Binder(fun config -> m |> eval config |> BindResult.bind (f >> eval config))
 
     let contramap f (m: Binder<'a>) = Binder(f >> run m)
 
@@ -59,25 +59,25 @@ module Binder =
             (fun parent ->
                 parentBinder
                 |> eval parent
-                |> Bind.bind (fun subSection -> b |> eval subSection))
+                |> BindResult.bind (fun subSection -> b |> eval subSection))
 
     let nestOpt (b: Binder<'a>) (sectionBinder: Binder<IConfigurationSection option>) =
         Binder
             (fun parent ->
                 sectionBinder
                 |> eval parent
-                |> Bind.bind
+                |> BindResult.bind
                     (function
-                    | Some subSection -> b |> eval subSection |> Bind.map Some
+                    | Some subSection -> b |> eval subSection |> BindResult.map Some
                     | None -> None |> Success))
 
     let map f (m: Binder<'a>) : Binder<'b> =
-        Binder(fun config -> m |> eval config |> Bind.map f)
+        Binder(fun config -> m |> eval config |> BindResult.map f)
 
     let result x = x |> Success |> ofBind
 
     let zip x y : Binder<'a * 'b> =
-        Binder(fun config -> Bind.zip (x |> eval config) (y |> eval config))
+        Binder(fun config -> BindResult.zip (x |> eval config) (y |> eval config))
 
 let private path (config: IConfiguration) =
     match config with
