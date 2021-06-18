@@ -1,7 +1,7 @@
 # Symbolica.Extensions.Configuration.FSharp
 
 
-Provides a safe API for binding an FSharp type from the dotnet [`IConfiguration`](https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.configuration.iconfiguration?view=dotnet-plat-ext-5.0) interface. It is an FSharp friendly alternative to using the reflection based [`ConfigurationBinder.Bind`](https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.configuration.configurationbinder.bind?view=dotnet-plat-ext-5.0).
+Provides a safe API for binding an FSharp type from the dotnet [`IConfiguration`](https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.configuration.iconfiguration?view=dotnet-plat-ext-5.0) interface. It is an FSharp-friendly alternative to using the reflection-based [`ConfigurationBinder.Bind`](https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.configuration.configurationbinder.bind?view=dotnet-plat-ext-5.0).
 
 ## Motivation
 
@@ -9,11 +9,11 @@ Out-of-the-box dotnet provides what it calls the ["the Options pattern"](https:/
 
 > The options pattern uses classes to provide strongly typed access to groups of related settings.
 
-Whilst this might be strongly typed in the sense that you're interacting with statically typed objects, the binding mechanism is not strictly type safe. It has a few notable problems, especially when working with it from FSharp.
+Whilst this might be strongly typed in the sense that you're interacting with statically typed options objects, the binding mechanism is not strictly safe and so the static types are often a lie. This leads to a few notable problems, especially when working with it from FSharp.
 
-1. It's a large source of `NullReferenceException`s because the binder will hapily set a value to `null` if it's missing in the underlying config. This means your FSharp type is a lie because it most likely purports to not allow `null` and so it's not so strongly typed after all. FSharp developers would rather model optional config with an `Option`.
+1. It's a large source of `NullReferenceException`s because the binder will hapily set a value to `null` if it's missing in the underlying config. This means your FSharp type is probably lying to you about the fact its value cannot be null. FSharp developers would rather model optional config with an `Option`, but the binder doesn't support this.
 1. It uses a reflection based API which means that if you want to use FSharp records to model your options they have to be annotated with `[<CLIMutable>]`.
-1. It can struggle to bind more exotic types beyond primitives from the CLR and the most common collection types.
+1. It can struggle to bind more exotic types beyond the primitives from the CLR and the most common collection types.
 
 This library provides an alternative approach to options binding for FSharp developers in the form of declarative computation expressions. Rather than relying on reflection magic it gives you control over the whole options binding process in a composable and type safe way. It provides first class support for `Option` values. It models the outcome of the bind operation with a `BindResult` which can be either `Success` or `Failure` and it reports as many issues as it can when a `Failure` occurs so you can fix them all in one go.
 
@@ -183,3 +183,39 @@ Failure(
 ```
 
 Notice how in this case it returns as many errors as it can.
+
+## Usage with DI
+
+It's a common practice when configuring options in dotnet applications to do it using the `Configure` extension method of the `IServiceCollection` like this
+
+```fsharp
+let configureServices (ctx: WebHostBuilderContext) (services: IServiceCollection) =
+    services
+        .Configure<Options>(ctx.Configuration.GetSection("Options").Bind)
+    |> ignore
+```
+
+Because these `Configure` extension methods take an `Action<TOptions>` it requires that the type `TOptions` has a parameterless public constructor that it can invoke via reflection. This goes against the design of this library. At present if you want to use this library with DI then you will need to do something like this instead.
+
+```fsharp
+let bindOptions config =
+    section "Options" {
+        // rest of binding code
+    }
+    |> Binder.eval config
+    |> BindResult.defaultWith (
+        String.concat System.Environment.NewLine
+        >> failwith
+    ) // Choosen to throw an exception containing all of the errors in the case of failure
+
+let configureServices (ctx: WebHostBuilderContext) (services: IServiceCollection) =
+    // Add the options type as a transient service if you want it to be rebound on each request,
+    // i.e. to pick up config changes
+    services
+        .AddTransient<Symbolica.Infrastructure.GitHub.Options>(fun _ -> ctx.Configuration |> bindOptions)
+    |> ignore
+```
+
+The drawbacks to this are that we don't have support for named options or reactive options monitoring in this form.
+
+If enough people want to use this with DI, because named and monitored options are required, then it would be possible to provide an alternative instance of the `IOptionsFactory` which worked well with this library. Please open an issue if this is something you'd like.
