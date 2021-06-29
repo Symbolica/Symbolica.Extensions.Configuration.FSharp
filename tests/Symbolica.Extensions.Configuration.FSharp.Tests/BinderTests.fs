@@ -36,20 +36,20 @@ module Binder =
         [<Property>]
         let ``Failure(e1) apply Success(x) should be Failure(e1)`` e1 (x: int) =
             test
-                <@ Binder.ofBind (Failure(e1)) <*> Binder.result x
+                <@ Binder.ofBindResult (Failure(e1)) <*> Binder.result x
                    |> Binder.eval config = Failure(e1) @>
 
         [<Property>]
         let ``Success(f) apply Failure(e2) should be Failure(e2)`` (f: int -> int) e2 =
             test
-                <@ Binder.result f <*> Binder.ofBind (Failure(e2))
+                <@ Binder.result f <*> Binder.ofBindResult (Failure(e2))
                    |> Binder.eval config = Failure(e2) @>
 
         [<Property>]
         let ``Failure(e1) apply Failure(e2) should be Failure(e1 append e2)`` e1 e2 =
             test
-                <@ Binder.ofBind (Failure(e1))
-                   <*> Binder.ofBind (Failure(e2))
+                <@ Binder.ofBindResult (Failure(e1))
+                   <*> Binder.ofBindResult (Failure(e2))
                    |> Binder.eval config = Failure(e1 |> List.append <| e2) @>
 
     module Bind =
@@ -74,7 +74,7 @@ module Binder =
         [<Property>]
         let ``Failure(e) >>= f should be Failure(e)`` e (f: int -> Binder<string>) =
             test
-                <@ Binder.ofBind (Failure(e))
+                <@ Binder.ofBindResult (Failure(e))
                    >>= f
                    |> Binder.eval config = Failure(e) @>
 
@@ -105,19 +105,19 @@ module Binder =
         [<Property>]
         let ``zip Failure(e1) Success(b) should be Failure(e1)`` e1 (b: string) =
             test
-                <@ Binder.zip (Binder.ofBind (Failure(e1))) (Binder.result b)
+                <@ Binder.zip (Binder.ofBindResult (Failure(e1))) (Binder.result b)
                    |> Binder.eval config = Failure(e1) @>
 
         [<Property>]
         let ```zip Success(a) Failure(e2) should be Failure(e2)`` (a: int) e2 =
             test
-                <@ Binder.zip (Binder.result a) (Binder.ofBind (Failure(e2)))
+                <@ Binder.zip (Binder.result a) (Binder.ofBindResult (Failure(e2)))
                    |> Binder.eval config = Failure(e2) @>
 
         [<Property>]
         let ```zip Failure(e1) Failure(e2) should be Failure(e1 append e2)`` e1 e2 =
             test
-                <@ Binder.zip (Binder.ofBind (Failure(e1))) (Binder.ofBind (Failure(e2)))
+                <@ Binder.zip (Binder.ofBindResult (Failure(e1))) (Binder.ofBindResult (Failure(e2)))
                    |> Binder.eval config = Failure(e1 |> List.append <| e2) @>
 
     module Section =
