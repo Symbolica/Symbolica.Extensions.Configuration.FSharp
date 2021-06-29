@@ -39,7 +39,7 @@ PM> Install-Package Symbolica.Extensions.Configuration.FSharp
 
 ## Usage
 
-The primary means of using this library is through two computation expressions called `section` and `optSection`. These provide a declarative DSL for safely binding a type from an `IConfiguration` instance.
+The primary means of using this library is through a computation expression called `bind` and a handful of combinator functions which make it easy to combine binders for sub sections into larger types. These provide a declarative DSL for safely binding a type from an `IConfiguration` instance. It's probably best to see an example, but you can find the full api [here](src/Symbolica.Extensions.Configuration.FSharp/Api.fs).
 
 ## Example
 
@@ -60,37 +60,35 @@ type Options =
 We can bind this from an `IConfiguration` like this
 
 ```fsharp
-let bindOptions (config: IConfiguration) =
-    section "Options" {
-        let! name = value "Name"
-        and! count = value "Count"
+let bindOptions config =
 
-        and! subOptions =
-            section "Sub" {
-                let! optionalNumber = optValueOf Decode.float "MaybeDecimal"
-                and! bool = valueOf Decode.bool "bool"
+    // We can easily define reusable binders for the child sections because the api is composable
+    let bindSubOptions =
+        bind {
+            let! optionalNumber = optValueOf Decode.float "MaybeDecimal"
+            and! bool = valueOf Decode.bool "bool"
 
-                return
-                    { OptionalNumber = optionalNumber
-                      Bool = bool }
-            }
+            return
+                { OptionalNumber = optionalNumber
+                  Bool = bool }
+        }
 
-        and! optSubOptions =
-            optSection "OptSub" {
-                let! optionalNumber = optValueOf Decode.float "MaybeDecimal"
-                and! bool = valueOf Decode.bool "bool"
+    section
+        "Options"
+        (bind {
+            let! name = value "Name"
 
-                return
-                    { OptionalNumber = optionalNumber
-                      Bool = bool }
-            }
+            // We can use the `section` combinator with our bindSubOptions function to bind it from a section called "Sub"
+            and! subOptions = section "Sub" bindSubOptions
 
-        return
-            { Name = name
-              Count = count
-              SubOptions = subOptions
-              OptSubOptions = optSubOptions }
-    }
+            // We can also use the `optSection` combinator with our bindSubOptions funtions if that whole section of config is optional
+            and! optSubOptions = optSection "OptSub" bindSubOptions
+
+            return
+                { Name = name
+                  SubOptions = subOptions
+                  OptSubOptions = optSubOptions }
+         })
     |> Binder.eval config
 ```
 
