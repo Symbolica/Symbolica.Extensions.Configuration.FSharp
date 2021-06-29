@@ -78,29 +78,16 @@ module Binder =
                     if section.GetChildren() |> Seq.isEmpty then
                         match section with
                         | :? IConfigurationSection as s -> s.Value |> Success
-                        | _ ->
-                            failwith
-                                $"Expected to bind from an IConfigurationSection, but was binding from an {section.GetType()}"
+                        | _ -> failwith $"Expected to bind from an IConfigurationSection, but was binding from an {section.GetType()}"
                     else
                         [ $"Expected a simple value at '{section |> path}' but found an object." ]
                         |> Failure)
 
         let valueOf decoder = value |> bind decoder
 
-[<AutoOpen>]
-module BinderExtensions =
-    let value =
-        Binder.section >> Binder.nest Binder.Section.value
-
-    let valueOf decoder = value >> Binder.bind decoder
-
-    let optValue =
-        Binder.optSection
-        >> Binder.nestOpt Binder.Section.value
-
-    let optValueOf decoder =
-        optValue
-        >> Binder.bind
-            (function
-            | Some s -> s |> decoder |> Binder.map Some
-            | None -> None |> Success |> Binder.ofBind)
+    type Builder() =
+        member _.Bind(x: Binder<'a>, f) = x |> bind f
+        member _.BindReturn(x: Binder<'a>, f) = x |> map f
+        member _.MergeSources(x1, x2) = zip x1 x2
+        member _.Return(x: 'a) : Binder<'a> = x |> Success |> ofBind
+        member _.ReturnFrom(x: Binder<'a>) = x

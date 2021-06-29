@@ -14,34 +14,28 @@ module Builders =
           OptSubOptions: SubOptions option }
 
     let mkOptions config =
-        section "Options" {
-            let! name = value "Name"
+        let bindSubOptions =
+            bind {
+                let! optionalNumber = optValueOf Decode.float "MaybeDecimal"
+                and! bool = valueOf Decode.bool "bool"
 
-            and! subOptions =
-                section "Sub" {
-                    let! optionalNumber = optValueOf Decode.float "MaybeDecimal"
-                    and! bool = valueOf Decode.bool "bool"
+                return
+                    { OptionalNumber = optionalNumber
+                      Bool = bool }
+            }
 
-                    return
-                        { OptionalNumber = optionalNumber
-                          Bool = bool }
-                }
+        section
+            "Options"
+            (bind {
+                let! name = value "Name"
+                and! subOptions = section "Sub" bindSubOptions
+                and! optSubOptions = optSection "OptSub" bindSubOptions
 
-            and! optSubOptions =
-                optSection "OptSub" {
-                    let! optionalNumber = optValueOf Decode.float "MaybeDecimal"
-                    and! bool = valueOf Decode.bool "bool"
-
-                    return
-                        { OptionalNumber = optionalNumber
-                          Bool = bool }
-                }
-
-            return
-                { Name = name
-                  SubOptions = subOptions
-                  OptSubOptions = optSubOptions }
-        }
+                return
+                    { Name = name
+                      SubOptions = subOptions
+                      OptSubOptions = optSubOptions }
+             })
         |> Binder.eval config
 
     [<Fact>]
