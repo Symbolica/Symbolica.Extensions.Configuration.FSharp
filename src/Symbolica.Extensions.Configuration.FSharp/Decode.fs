@@ -6,7 +6,7 @@ namespace Symbolica.Extensions.Configuration.FSharp
 /// </summary>
 type Decoder<'a> = string -> Binder<'a>
 
-/// Contains decoders for common types and combinators functions for building new decoders.
+/// Contains decoders for common types and combinator functions for building new decoders.
 module Decode =
 
     /// <summary>
@@ -20,7 +20,7 @@ module Decode =
 
     /// <summary>Creates a <see cref="Decoder" /> from a System.Type.TryParse style parsing function.</summary>
     /// <remarks>
-    /// Useful for creating a parser for a privitive type for which a <c>TryParse</c> function already exists.
+    /// Useful for creating a parser for a primitive type for which a <c>TryParse</c> function already exists.
     /// </remarks>
     /// <param name="parser">The parsing function with which to create the <see cref="Decoder" />.</param>
     /// <param name="value">The value to be decoded.</param>

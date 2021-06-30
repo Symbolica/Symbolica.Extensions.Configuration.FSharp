@@ -16,7 +16,7 @@ module Binder =
     /// <remarks>
     /// Effectively this is creating a <see cref="Binder" /> that doesn't need to read from the <see cref="IConfiguration" />.
     /// </remarks>
-    /// <param name="bindResult">The <see cref="BindResult" /> to create this <see cref="Binder" /> from.</param>
+    /// <param name="bindResult">The <see cref="BindResult" /> from which to create this <see cref="Binder" />.</param>
     /// <returns>A <see cref="Binder" />.</returns>
     let ofBindResult bindResult = Binder(fun _ -> bindResult)
 
@@ -50,7 +50,7 @@ module Binder =
     /// the data contained in <paramref name="m" />; otherwise the original <c>Failure</c> will be maintained.
     /// </remarks>
     /// <param name="f">The function to which the value will be bound.</param>
-    /// <param name="m">The <see cref="Binder" /> that contains the input value to <paramref name="f" />.</param>
+    /// <param name="m">The <see cref="Binder" /> that contains the input value to the function <paramref name="f" />.</param>
     /// <returns>A <see cref="Binder" />.</returns>
     let bind (f: 'a -> Binder<'b>) (m: Binder<'a>) : Binder<'b> =
         Binder
@@ -62,13 +62,13 @@ module Binder =
     /// <summary>Maps the inputs to the <see cref="Binder" />.</summary>
     /// <param name="f">The function used to map the input.</param>
     /// <param name="m">The <see cref="Binder" /> to be contramapped.</param>
-    /// <returns>A <see cref="Binder" /> whose input is mapped by <paramref name="f" />.</returns>
+    /// <returns>A <see cref="Binder" /> whose input is mapped by the function <paramref name="f" />.</returns>
     let contramap f (m: Binder<'a>) = Binder(f >> run m)
 
     /// <summary>Maps the output of the <see cref="Binder" />.</summary>
     /// <param name="f">The function used to map the output.</param>
     /// <param name="m">The <see cref="Binder" /> to be mapped.</param>
-    /// <returns>A <see cref="Binder" /> whose output is mapped by <paramref name="f" />.</returns>
+    /// <returns>A <see cref="Binder" /> whose output is mapped by the function <paramref name="f" />.</returns>
     let map f (m: Binder<'a>) : Binder<'b> =
         Binder(fun config -> m |> eval config |> BindResult.map f)
 
@@ -144,7 +144,7 @@ module Binder =
     /// <param name="key">The key at which to try and find a child <see cref="IConfiguration" />.</param>
     /// <returns>
     /// A <see cref="Binder" /> whose input is a parent <see cref="IConfiguration" /> and whose output when
-    /// evaluated is the chlid <see cref="IConfiguration" />.
+    /// evaluated is the child <see cref="IConfiguration" />.
     /// </returns>
     let section key =
         Binder
@@ -164,7 +164,7 @@ module Binder =
     /// <param name="key">The key at which to try and find a child <see cref="IConfiguration" />.</param>
     /// <returns>
     /// A <see cref="Binder" /> whose input is a parent <see cref="IConfiguration" /> and whose output when
-    /// evaluated is the optional chlid <see cref="IConfiguration" />.
+    /// evaluated is the optional child <see cref="IConfiguration" />.
     /// </returns>
     let optSection key =
         Binder

@@ -26,8 +26,8 @@ module BindResult =
 
     /// <summary>Monadic bind for a <see cref="BindResult" />.</summary>
     /// <remarks>
-    /// If the input <see cref="BindResult" /> is <c>Success</c> then the <paramref name="f" /> will be evaluated with
-    /// the data contained in that <see cref="BindResult" />; otherwise the original <c>Failure</c> will be maintained.
+    /// If the input <see cref="BindResult" /> is <c>Success</c> then the function <paramref name="f" /> will be evaluated
+    /// with the data contained in that <see cref="BindResult" />; otherwise the original <c>Failure</c> will be maintained.
     /// </remarks>
     /// <param name="f">The function to which the value will be bound.</param>
     /// <returns>A <see cref="BindResult" />.</returns>

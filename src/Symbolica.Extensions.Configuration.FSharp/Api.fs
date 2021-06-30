@@ -3,7 +3,7 @@ namespace Symbolica.Extensions.Configuration.FSharp
 [<AutoOpen>]
 module Api =
     /// <summary>A computation expression that is used to create a binder which binds the data of config section to a user defined type.</summary>
-    /// <returns>An instance of the builder</returns>
+    /// <returns>An instance of the builder.</returns>
     let bind = Binder.Builder()
 
     /// <summary>A combinator for taking an existing binder and nesting it under a parent section at the given key.</summary>
