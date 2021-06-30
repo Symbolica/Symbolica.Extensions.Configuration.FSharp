@@ -47,7 +47,7 @@ module BindResult =
 
     /// <summary>Maps the output of the <see cref="BindResult" />.</summary>
     /// <param name="f">The function used to map the output.</param>
-    /// <returns>A <see cref="BindResult" /> whose output is mapped by <paramref name="f" />.</returns>
+    /// <returns>A <see cref="BindResult" /> whose output is mapped by the function <paramref name="f" />.</returns>
     let map f : BindResult<'a> -> BindResult<'b> =
         function
         | Success x -> x |> f |> Success

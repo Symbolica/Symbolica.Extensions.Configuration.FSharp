@@ -46,8 +46,8 @@ module Binder =
 
     /// <summary>Monadic bind for a <see cref="Binder" />.</summary>
     /// <remarks>
-    /// If <paramref name="m" /> is <c>Success</c> then the <paramref name="f" /> will be evaluated with
-    /// the data contained in <paramref name="m" />; otherwise the original <c>Failure</c> will be maintained.
+    /// If <paramref name="m" /> is <c>Success</c> then the function <paramref name="f" /> will be evaluated
+    /// with the data contained in <paramref name="m" />; otherwise the original <c>Failure</c> will be maintained.
     /// </remarks>
     /// <param name="f">The function to which the value will be bound.</param>
     /// <param name="m">The <see cref="Binder" /> that contains the input value to the function <paramref name="f" />.</param>
