@@ -36,13 +36,15 @@ module Binder =
         [<Property>]
         let ``Failure(e1) apply Success(x) should be Failure(e1)`` e1 (x: int) =
             test
-                <@ Binder.ofBindResult (Failure(e1)) <*> Binder.result x
+                <@ Binder.ofBindResult (Failure(e1))
+                   <*> Binder.result x
                    |> Binder.eval config = Failure(e1) @>
 
         [<Property>]
         let ``Success(f) apply Failure(e2) should be Failure(e2)`` (f: int -> int) e2 =
             test
-                <@ Binder.result f <*> Binder.ofBindResult (Failure(e2))
+                <@ Binder.result f
+                   <*> Binder.ofBindResult (Failure(e2))
                    |> Binder.eval config = Failure(e2) @>
 
         [<Property>]
@@ -135,9 +137,9 @@ module Binder =
             let ``when section has children should be Failure`` (ConfigurationPath path) (ConfigurationKey childKey) =
                 let section =
                     { Children =
-                          [ { Children = Seq.empty
-                              Path = ConfigurationPath.Combine(path, childKey)
-                              Value = "Value" } ]
+                        [ { Children = Seq.empty
+                            Path = ConfigurationPath.Combine(path, childKey)
+                            Value = "Value" } ]
                       Path = path
                       Value = null }
 
@@ -201,9 +203,9 @@ module Value =
     let ``when prop exists and is not null should be Success value`` (ConfigurationPath path) (ConfigurationKey key) x =
         let section =
             { Children =
-                  [ { Children = Seq.empty
-                      Path = ConfigurationPath.Combine(path, key)
-                      Value = x } ]
+                [ { Children = Seq.empty
+                    Path = ConfigurationPath.Combine(path, key)
+                    Value = x } ]
               Path = path
               Value = null }
 
@@ -214,9 +216,9 @@ module Value =
     let ``when prop does not exist should be Failure`` (ConfigurationPath path) (ConfigurationKey key) x =
         let section =
             { Children =
-                  [ { Children = Seq.empty
-                      Path = ConfigurationPath.Combine(path, key)
-                      Value = x } ]
+                [ { Children = Seq.empty
+                    Path = ConfigurationPath.Combine(path, key)
+                    Value = x } ]
               Path = path
               Value = null }
 
@@ -231,9 +233,9 @@ module Value =
     let ``when prop exists and is null should be Failure`` (ConfigurationPath path) (ConfigurationKey key) =
         let section =
             { Children =
-                  [ { Children = Seq.empty
-                      Path = ConfigurationPath.Combine(path, key)
-                      Value = null } ]
+                [ { Children = Seq.empty
+                    Path = ConfigurationPath.Combine(path, key)
+                    Value = null } ]
               Path = path
               Value = null }
 
@@ -249,9 +251,9 @@ module ValueOf =
         =
         let section =
             { Children =
-                  [ { Children = Seq.empty
-                      Path = ConfigurationPath.Combine(path, key)
-                      Value = x |> string } ]
+                [ { Children = Seq.empty
+                    Path = ConfigurationPath.Combine(path, key)
+                    Value = x |> string } ]
               Path = path
               Value = null }
 
@@ -262,9 +264,9 @@ module ValueOf =
     let ``when prop does not exist should be Failure`` (ConfigurationPath path) (ConfigurationKey key) (x: int) =
         let section =
             { Children =
-                  [ { Children = Seq.empty
-                      Path = ConfigurationPath.Combine(path, key)
-                      Value = x |> string } ]
+                [ { Children = Seq.empty
+                    Path = ConfigurationPath.Combine(path, key)
+                    Value = x |> string } ]
               Path = path
               Value = null }
 
@@ -279,9 +281,9 @@ module ValueOf =
     let ``when prop cannot be decoded should be Failure`` (ConfigurationPath path) (ConfigurationKey key) =
         let section =
             { Children =
-                  [ { Children = Seq.empty
-                      Path = ConfigurationPath.Combine(path, key)
-                      Value = "string" } ]
+                [ { Children = Seq.empty
+                    Path = ConfigurationPath.Combine(path, key)
+                    Value = "string" } ]
               Path = path
               Value = null }
 
@@ -300,9 +302,9 @@ module OptValue =
         =
         let section =
             { Children =
-                  [ { Children = Seq.empty
-                      Path = ConfigurationPath.Combine(path, key)
-                      Value = x } ]
+                [ { Children = Seq.empty
+                    Path = ConfigurationPath.Combine(path, key)
+                    Value = x } ]
               Path = path
               Value = null }
 
@@ -313,9 +315,9 @@ module OptValue =
     let ``when prop does not exist should be Success None`` (ConfigurationPath path) (ConfigurationKey key) x =
         let section =
             { Children =
-                  [ { Children = Seq.empty
-                      Path = ConfigurationPath.Combine(path, key)
-                      Value = x } ]
+                [ { Children = Seq.empty
+                    Path = ConfigurationPath.Combine(path, key)
+                    Value = x } ]
               Path = path
               Value = null }
 
@@ -327,9 +329,9 @@ module OptValue =
     let ``when prop exists and is null should be Success None`` (ConfigurationPath path) (ConfigurationKey key) =
         let section =
             { Children =
-                  [ { Children = Seq.empty
-                      Path = ConfigurationPath.Combine(path, key)
-                      Value = null } ]
+                [ { Children = Seq.empty
+                    Path = ConfigurationPath.Combine(path, key)
+                    Value = null } ]
               Path = path
               Value = null }
 
@@ -345,9 +347,9 @@ module OptValueOf =
         =
         let section =
             { Children =
-                  [ { Children = Seq.empty
-                      Path = ConfigurationPath.Combine(path, key)
-                      Value = x |> string } ]
+                [ { Children = Seq.empty
+                    Path = ConfigurationPath.Combine(path, key)
+                    Value = x |> string } ]
               Path = path
               Value = null }
 
@@ -358,9 +360,9 @@ module OptValueOf =
     let ``when prop does not exist should be Success None`` (ConfigurationPath path) (ConfigurationKey key) (x: int) =
         let section =
             { Children =
-                  [ { Children = Seq.empty
-                      Path = ConfigurationPath.Combine(path, key)
-                      Value = x |> string } ]
+                [ { Children = Seq.empty
+                    Path = ConfigurationPath.Combine(path, key)
+                    Value = x |> string } ]
               Path = path
               Value = null }
 
@@ -375,9 +377,9 @@ module OptValueOf =
     let ``when prop cannot be decoded should be Failure`` (ConfigurationPath path) (ConfigurationKey key) =
         let section =
             { Children =
-                  [ { Children = Seq.empty
-                      Path = ConfigurationPath.Combine(path, key)
-                      Value = "string" } ]
+                [ { Children = Seq.empty
+                    Path = ConfigurationPath.Combine(path, key)
+                    Value = "string" } ]
               Path = path
               Value = null }
 

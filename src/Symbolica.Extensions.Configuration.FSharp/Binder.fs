@@ -53,11 +53,10 @@ module Binder =
     /// <param name="m">The <see cref="Binder" /> that contains the input value to the function <paramref name="f" />.</param>
     /// <returns>A <see cref="Binder" />.</returns>
     let bind (f: 'a -> Binder<'b>) (m: Binder<'a>) : Binder<'b> =
-        Binder
-            (fun config ->
-                m
-                |> eval config
-                |> BindResult.bind (f >> eval config))
+        Binder (fun config ->
+            m
+            |> eval config
+            |> BindResult.bind (f >> eval config))
 
     /// <summary>Maps the inputs to the <see cref="Binder" />.</summary>
     /// <param name="f">The function used to map the input.</param>
@@ -88,11 +87,10 @@ module Binder =
     /// then evaluating the <paramref name="childBinder" />.
     /// </returns>
     let nest (childBinder: Binder<'a>) parentBinder =
-        Binder
-            (fun parent ->
-                parentBinder
-                |> eval parent
-                |> BindResult.bind (fun subSection -> childBinder |> eval subSection))
+        Binder (fun parent ->
+            parentBinder
+            |> eval parent
+            |> BindResult.bind (fun subSection -> childBinder |> eval subSection))
 
     /// <summary>
     /// Nests a <see cref="Binder" /> of a child <see cref="IConfiguration" /> under an optional <see cref="Binder" />
@@ -110,14 +108,15 @@ module Binder =
     /// then evaluating the <paramref name="childBinder" />.
     /// </returns>
     let nestOpt (childBinder: Binder<'a>) (parentBinder: Binder<IConfigurationSection option>) =
-        Binder
-            (fun parent ->
-                parentBinder
-                |> eval parent
-                |> BindResult.bind
-                    (function
-                    | Some subSection -> childBinder |> eval subSection |> BindResult.map Some
-                    | None -> None |> Success))
+        Binder (fun parent ->
+            parentBinder
+            |> eval parent
+            |> BindResult.bind (function
+                | Some subSection ->
+                    childBinder
+                    |> eval subSection
+                    |> BindResult.map Some
+                | None -> None |> Success))
 
     /// <summary>Create a <see cref="Binder" /> from a plain value.</summary>
     /// <remarks>
@@ -147,15 +146,14 @@ module Binder =
     /// evaluated is the child <see cref="IConfiguration" />.
     /// </returns>
     let section key =
-        Binder
-            (fun parent ->
-                let section = parent.GetSection(key)
+        Binder (fun parent ->
+            let section = parent.GetSection(key)
 
-                if section.Exists() then
-                    Success section
-                else
-                    [ $"The key '{key}' does not exist at '{parent |> path}'." ]
-                    |> Failure)
+            if section.Exists() then
+                Success section
+            else
+                [ $"The key '{key}' does not exist at '{parent |> path}'." ]
+                |> Failure)
 
     /// <summary>
     /// Binds the optional child <see cref="IConfiguration" /> located at the <paramref name="key" /> of the
@@ -167,31 +165,31 @@ module Binder =
     /// evaluated is the optional child <see cref="IConfiguration" />.
     /// </returns>
     let optSection key =
-        Binder
-            (fun parent ->
-                let section = parent.GetSection(key)
+        Binder (fun parent ->
+            let section = parent.GetSection(key)
 
-                Success(
-                    if section.Exists() then
-                        Some section
-                    else
-                        None
-                ))
+            Success(
+                if section.Exists() then
+                    Some section
+                else
+                    None
+            ))
 
     module Section =
         /// <summary>
         /// Attempts to bind the value of the current <see cref="IConfiguration" /> .
         /// </summary>
         let value =
-            Binder
-                (fun section ->
-                    if section.GetChildren() |> Seq.isEmpty then
-                        match section with
-                        | :? IConfigurationSection as s -> s.Value |> Success
-                        | _ -> failwith $"Expected to bind from an IConfigurationSection, but was binding from an {section.GetType()}"
-                    else
-                        [ $"Expected a simple value at '{section |> path}' but found an object." ]
-                        |> Failure)
+            Binder (fun section ->
+                if section.GetChildren() |> Seq.isEmpty then
+                    match section with
+                    | :? IConfigurationSection as s -> s.Value |> Success
+                    | _ ->
+                        failwith
+                            $"Expected to bind from an IConfigurationSection, but was binding from an {section.GetType()}"
+                else
+                    [ $"Expected a simple value at '{section |> path}' but found an object." ]
+                    |> Failure)
 
         /// <summary>
         /// Attempts to bind the value of the current <see cref="IConfiguration" /> using the <paramref name="decoder"/>.

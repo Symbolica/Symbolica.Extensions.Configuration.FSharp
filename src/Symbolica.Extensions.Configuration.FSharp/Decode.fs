@@ -29,12 +29,11 @@ module Decode =
     /// <returns>A <see cref="Decoder" />.</returns>
     let ofParser (parser: string -> bool * 'parsed) : Decoder<'parsed> =
         fun value ->
-            Binder
-                (fun section ->
-                    match parser value with
-                    | true, x -> Success x
-                    | false, _ ->
-                        Failure [ $"Could not decode '{value}' at path '{section |> path}' as type '{typeof<'parsed>}'." ])
+            Binder (fun section ->
+                match parser value with
+                | true, x -> Success x
+                | false, _ ->
+                    Failure [ $"Could not decode '{value}' at path '{section |> path}' as type '{typeof<'parsed>}'." ])
 
     /// <summary>A <see cref="Decoder" /> for <see cref="System.Boolean" /> values.</summary>
     let bool = ofParser Boolean.TryParse
@@ -67,4 +66,5 @@ module Decode =
     let uint64 = ofParser UInt64.TryParse
 
     /// <summary>A <see cref="Decoder" /> for <see cref="System.Uri" /> values of the specified <see cref="System.UriKind" />.</summary>
-    let uri kind = ofParser (fun s -> Uri.TryCreate(s, kind))
+    let uri kind =
+        ofParser (fun s -> Uri.TryCreate(s, kind))
