@@ -6,6 +6,10 @@ type BindResult<'a> =
 
 module BindResult =
 
+    /// <summary>Create a <see cref="BindResult" /> of <c>Success</c> from a plain value.</summary>
+    /// <param name="x">The value to lift up in a <see cref="BindResult" />.</param>
+    let result x = x |> Success
+
     /// <summary>
     /// Applies the <see cref="BindResult" /> <paramref name="a" /> to the function <paramref name="f" />.
     /// </summary>
