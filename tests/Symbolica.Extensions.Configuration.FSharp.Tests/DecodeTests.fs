@@ -45,8 +45,7 @@ module Decode =
     module DateTime =
         [<Property>]
         let ``should be Success value if can be converted to DateTime`` (value: System.DateTime) =
-            let value =
-                value.AddMilliseconds(-value.Millisecond |> float)
+            let value = value.AddMilliseconds(-value.Millisecond |> float)
 
             let string = value.ToString("s")
 
@@ -198,26 +197,28 @@ module Decode =
         [<Property>]
         let ``should be Success value if can be converted to absolute uri`` (HostName host) =
             let value = System.Uri($"https://{host}")
+
             test
                 <@ value
                    |> string
                    |> Decode.uri System.UriKind.Absolute
                    |> Binder.eval (SectionStub.Empty "") = Success(value) @>
 
-       [<Fact>]
-       let ``should be Success value if can be converted to relative uri`` =
-           let value = System.Uri("/relative/uri", System.UriKind.Relative)
-           test
-               <@ value
-                  |> string
-                  |> Decode.uri System.UriKind.Relative
-                  |> Binder.eval (SectionStub.Empty "") = Success(value) @>
+    [<Fact>]
+    let ``should be Success value if can be converted to relative uri`` =
+        let value = System.Uri("/relative/uri", System.UriKind.Relative)
 
-        [<Property>]
-        let ``should be Failure if string can not be converted to uri`` path =
-            test
-                <@ "string"
-                   |> Decode.uri System.UriKind.Absolute
-                   |> Binder.eval (SectionStub.Empty path) = Failure(
-                    [ $"Could not decode 'string' at path '{path}' as type 'System.Uri'." ]
-                ) @>
+        test
+            <@ value
+               |> string
+               |> Decode.uri System.UriKind.Relative
+               |> Binder.eval (SectionStub.Empty "") = Success(value) @>
+
+    [<Property>]
+    let ``should be Failure if string can not be converted to uri`` path =
+        test
+            <@ "string"
+               |> Decode.uri System.UriKind.Absolute
+               |> Binder.eval (SectionStub.Empty path) = Failure(
+                [ $"Could not decode 'string' at path '{path}' as type 'System.Uri'." ]
+            ) @>

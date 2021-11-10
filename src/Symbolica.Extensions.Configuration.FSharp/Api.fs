@@ -57,7 +57,6 @@ module Api =
     let optValueOf decoder key =
         key
         |> optValue
-        |> Binder.bind
-            (function
+        |> Binder.bind (function
             | Some s -> s |> decoder |> Binder.map Some
             | None -> None |> Success |> Binder.ofBindResult)
