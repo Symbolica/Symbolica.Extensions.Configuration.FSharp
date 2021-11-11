@@ -12,7 +12,6 @@
     <Compile Include="ConfigurationExtensions.fs" />
     <Compile Include="BindResult.fs" />
     <Compile Include="Binder.fs" />
-    <Compile Include="Decode.fs" />
     <Compile Include="Bind.fs" />
   </ItemGroup>
 </Project>
