@@ -20,6 +20,7 @@
     <Compile Include="SectionStub.fs" />
     <Compile Include="BinderTests.fs" />
     <Compile Include="DecodeTests.fs" />
-    <Compile Include="ApiTests.fs" />
+    <Compile Include="BindTests.fs" />
+    <Compile Include="BuilderTests.fs" />
   </ItemGroup>
 </Project>

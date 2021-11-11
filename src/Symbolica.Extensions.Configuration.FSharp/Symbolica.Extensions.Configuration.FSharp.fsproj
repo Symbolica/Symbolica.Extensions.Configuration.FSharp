@@ -13,6 +13,6 @@
     <Compile Include="BindResult.fs" />
     <Compile Include="Binder.fs" />
     <Compile Include="Decode.fs" />
-    <Compile Include="Api.fs" />
+    <Compile Include="Bind.fs" />
   </ItemGroup>
 </Project>
