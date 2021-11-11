@@ -6,7 +6,7 @@ open System
 /// A function that takes a value and returns a <see cref="Binder"/> which evaluates to <c>Success</c> if the
 /// value can be decoded otherwise <c>Failure</c>.
 /// </summary>
-type Decoder<'a> = string -> Binder<'a>
+type Decoder<'config, 'a> = string -> Binder<'config, 'a>
 
 /// Contains decoders for common types and combinator functions for building new decoders.
 module Decode =
@@ -18,7 +18,7 @@ module Decode =
     /// <param name="f">The mapping function to apply to the contents of the <see cref="Decoder" />.</param>
     /// <param name="m">The <see cref="Decoder" />.</param>
     /// <returns>A <see cref="Decoder" /> containing the mapped contents.</returns>
-    let map f (m: Decoder<'a>) : Decoder<'b> = m >> Binder.map f
+    let map f (m: Decoder<_, 'a>) : Decoder<_, 'b> = m >> Binder.map f
 
     /// <summary>Creates a <see cref="Decoder" /> from a System.Type.TryParse style parsing function.</summary>
     /// <remarks>
@@ -27,7 +27,7 @@ module Decode =
     /// <param name="parser">The parsing function with which to create the <see cref="Decoder" />.</param>
     /// <param name="value">The value to be decoded.</param>
     /// <returns>A <see cref="Decoder" />.</returns>
-    let ofParser (parser: string -> bool * 'parsed) : Decoder<'parsed> =
+    let ofParser (parser: string -> bool * 'parsed) : Decoder<_, 'parsed> =
         fun value ->
             Binder (fun section ->
                 match parser value with
@@ -36,34 +36,34 @@ module Decode =
                     Failure [ $"Could not decode '{value}' at path '{section |> path}' as type '{typeof<'parsed>}'." ])
 
     /// <summary>A <see cref="Decoder" /> for <see cref="System.Boolean" /> values.</summary>
-    let bool = ofParser Boolean.TryParse
+    let bool x = ofParser Boolean.TryParse x
 
     /// <summary>A <see cref="Decoder" /> for <see cref="System.Char" /> values.</summary>
-    let char = ofParser Char.TryParse
+    let char x = ofParser Char.TryParse x
 
     /// <summary>A <see cref="Decoder" /> for <see cref="System.DateTime" /> values.</summary>
-    let dateTime = ofParser DateTime.TryParse
+    let dateTime x = ofParser DateTime.TryParse x
 
     /// <summary>A <see cref="Decoder" /> for <see cref="System.Double" /> values.</summary>
-    let float = ofParser Double.TryParse
+    let float x = ofParser Double.TryParse x
 
     /// <summary>A <see cref="Decoder" /> for <see cref="System.Int16" /> values.</summary>
-    let int16 = ofParser Int16.TryParse
+    let int16 x = ofParser Int16.TryParse x
 
     /// <summary>A <see cref="Decoder" /> for <see cref="System.Int32" /> values.</summary>
-    let int = ofParser Int32.TryParse
+    let int x = ofParser Int32.TryParse x
 
     /// <summary>A <see cref="Decoder" /> for <see cref="System.Int64" /> values.</summary>
-    let int64 = ofParser Int64.TryParse
+    let int64 x = ofParser Int64.TryParse x
 
     /// <summary>A <see cref="Decoder" /> for <see cref="System.UInt16" /> values.</summary>
-    let uint16 = ofParser UInt16.TryParse
+    let uint16 x = ofParser UInt16.TryParse x
 
     /// <summary>A <see cref="Decoder" /> for <see cref="System.UInt32" /> values.</summary>
-    let uint = ofParser UInt32.TryParse
+    let uint x = ofParser UInt32.TryParse x
 
     /// <summary>A <see cref="Decoder" /> for <see cref="System.UInt64" /> values.</summary>
-    let uint64 = ofParser UInt64.TryParse
+    let uint64 x = ofParser UInt64.TryParse x
 
     /// <summary>A <see cref="Decoder" /> for <see cref="System.Uri" /> values of the specified <see cref="System.UriKind" />.</summary>
     let uri kind =
