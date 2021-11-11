@@ -1,11 +1,20 @@
 namespace Symbolica.Extensions.Configuration.FSharp
 
+type Bind() =
+    member _.Bind(x: Binder<_, _>, f) = x |> Binder.bind f
+    member _.BindReturn(x: Binder<_, _>, f) = x |> Binder.map f
+    member _.MergeSources(x1, x2) = Binder.zip x1 x2
+    member _.Return(x: 'a) : Binder<_, 'a> = x |> Binder.result
+    member _.ReturnFrom(x: Binder<_, _>) = x
+
 [<AutoOpen>]
-module Api =
+module Builder =
     /// <summary>A computation expression that is used to create a binder which binds the data of config section to a user defined type.</summary>
     /// <returns>An instance of the builder.</returns>
-    let bind = Binder.Builder()
+    let bind = Bind()
 
+/// Contains combinator functions for building new binders.
+module Bind =
     /// <summary>A combinator for taking an existing binder and nesting it under a parent section at the given key.</summary>
     /// <param name="key">The key of the child section to which the <paramref name="sectionBinder" /> should be bound.</param>
     /// <param name="sectionBinder">The binder that binds the child section to some type.</param>

@@ -193,9 +193,3 @@ module Binder =
         /// <param name="decoder">The decoder to apply to the value.</param>
         let valueOf decoder = value |> bind decoder
 
-    type Builder() =
-        member _.Bind(x: Binder<_, _>, f) = x |> bind f
-        member _.BindReturn(x: Binder<_, _>, f) = x |> map f
-        member _.MergeSources(x1, x2) = zip x1 x2
-        member _.Return(x: 'a) : Binder<_, 'a> = x |> result
-        member _.ReturnFrom(x: Binder<_, _>) = x
