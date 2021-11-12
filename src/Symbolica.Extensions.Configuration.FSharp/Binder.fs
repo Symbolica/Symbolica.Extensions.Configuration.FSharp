@@ -116,49 +116,45 @@ module Binder =
     let sequenceList (m: Binder<_, 'a> list) : Binder<_, 'a list> = m |> traverseList id
 
     /// <summary>
-    /// Nests a <see cref="Binder" /> of a child configuration under a <see cref="Binder" /> of a
-    /// parent <see cref="IConfiguration" />.
+    /// Extends a <see cref="Binder" /> by feeding its output to the input of a subsequent binder.
     /// </summary>
-    /// <param name="childBinder">
-    /// The <see cref="Binder" /> that operates on the child configuration.
+    /// <remarks>
+    /// Effectively the value produced by the binder <paramref name="wa"/> becomes the configuration environment from which the
+    /// binder <paramref name="wb" /> reads from.
+    /// </remarks>
+    /// <param name="wb">
+    /// The <see cref="Binder" /> that reads from the output of <paramref name="wa" />.
     /// </param>
-    /// <param name="parentBinder">
-    /// The <see cref="Binder" /> that extracts the child configuration from the parent configuration.
+    /// <param name="wa">
+    /// The <see cref="Binder" /> that produces the environment for <paramref name="wb" />.
     /// </param>
     /// <returns>
-    /// A <see cref="Binder" /> that is the composition of first evaluating the <paramref name="parentBinder" /> and
-    /// then evaluating the <paramref name="childBinder" />.
+    /// A <see cref="Binder" /> that is the composition of first evaluating <paramref name="wa" /> and
+    /// then evaluating <paramref name="wb" /> using the output of <paramref name="wa" />.
     /// </returns>
-    let nest (childBinder: Binder<'config, _>) (parentBinder: Binder<_, 'config>) =
-        Binder (fun parent ->
-            parentBinder
-            |> eval parent
-            |> BindResult.bind (fun subSection -> childBinder |> eval subSection))
+    let extend (wb: Binder<'config, _>) (wa: Binder<_, 'config>) = wa |> bind (run wb >> ofBindResult)
 
     /// <summary>
-    /// Nests a <see cref="Binder" /> of a child configuration under an optional <see cref="Binder" />
-    /// of a parent configuration.
+    /// Extends a <see cref="Binder" /> by feeding its optional output to the input of a subsequent binder.
     /// </summary>
-    /// <param name="childBinder">
-    /// The <see cref="Binder" /> that operates on the child <see cref="IConfiguration" />.
+    /// <remarks>
+    /// Effectively the value produced by the binder <paramref name="wa"/> becomes the configuration environment from which the
+    /// binder <paramref name="wb" /> reads from.
+    /// If <paramref name="wa" /> produces <c>None</c> then <paramref name="wb" /> isn't evaluated.
+    /// </remarks>
+    /// <param name="wb">
+    /// The <see cref="Binder" /> that reads from the output of <paramref name="wa" />.
     /// </param>
-    /// <param name="parentBinder">
-    /// The <see cref="Binder" /> that extracts the optional child configuration from the parent configuration.
+    /// <param name="wa">
+    /// The <see cref="Binder" /> that produces the environment for <paramref name="wb" />.
     /// </param>
     /// <returns>
-    /// A <see cref="Binder" /> that is the composition of first evaluating the <paramref name="parentBinder" /> and
-    /// then evaluating the <paramref name="childBinder" />.
+    /// A <see cref="Binder" /> that is the composition of first evaluating <paramref name="wa" /> and
+    /// then evaluating <paramref name="wb" /> using the output of <paramref name="wa" />.
     /// </returns>
-    let nestOpt (childBinder: Binder<'config, 'a>) (parentBinder: Binder<_, 'config option>) : Binder<_, 'a option> =
-        Binder (fun parent ->
-            parentBinder
-            |> eval parent
-            |> BindResult.bind (function
-                | Some subSection ->
-                    childBinder
-                    |> eval subSection
-                    |> BindResult.map Some
-                | None -> None |> Success))
+    let extendOpt (wb: Binder<'config, 'a>) (wa: Binder<_, 'config option>) : Binder<_, 'a option> =
+        wa
+        |> bind (BindResult.traverseOpt (run wb) >> ofBindResult)
 
     /// <summary>Combines two <see cref="Binder" /> instances.</summary>
     /// <remarks>

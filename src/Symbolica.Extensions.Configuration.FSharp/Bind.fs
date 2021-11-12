@@ -31,7 +31,7 @@ module Bind =
             else
                 [ $"The key '{key}' does not exist at '{parent |> path}'." ]
                 |> Failure)
-        |> Binder.nest sectionBinder
+        |> Binder.extend sectionBinder
 
     /// <summary>A combinator for taking an existing binder and nesting it under an optional parent section at the given key.</summary>
     /// <remarks>If the <paramref name="key" /> does not exist or has an empty value then the binder will evaluate to <c>None</c>.</remarks>
@@ -48,7 +48,7 @@ module Bind =
                 else
                     None
             ))
-        |> Binder.nestOpt sectionBinder
+        |> Binder.extendOpt sectionBinder
 
     let private decode decoder : Binder<_, _> =
         Binder(fun value -> decoder |> Binder.eval value)
@@ -66,7 +66,7 @@ module Bind =
     /// <param name="decoder">The binder to use when converting the string value.</param>
     /// <returns>A binder for the value at the <paramref name="key" />.</returns>
     let value key decoder : Binder<'config, 'a> =
-        section key (readValue |> Binder.nest (decode decoder))
+        section key (readValue |> Binder.extend (decode decoder))
 
     /// <summary>Binds the optional value at the <paramref name="key" /> with the <paramref name="decoder" />.</summary>
     /// <remarks>If the <paramref name="key" /> does not exist or has an empty value then the binder will evaluate to <c>None</c>.</remarks>
@@ -74,7 +74,7 @@ module Bind =
     /// <param name="decoder">The binder to use when converting the string value.</param>
     /// <returns>A binder for the optional value at the <paramref name="key" />.</returns>
     let optValue key decoder : Binder<'config, 'a option> =
-        optSection key (readValue |> Binder.nest (decode decoder))
+        optSection key (readValue |> Binder.extend (decode decoder))
 
     /// <summary>Creates a <see cref="Binder" /> from a System.Type.TryParse style parsing function.</summary>
     /// <remarks>
