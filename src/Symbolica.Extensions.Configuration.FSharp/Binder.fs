@@ -1,7 +1,5 @@
 namespace Symbolica.Extensions.Configuration.FSharp
 
-open Microsoft.Extensions.Configuration
-
 /// <summary>
 /// A Reader monad that reads configuration and returns a <see cref="BindResult" />.
 /// </summary>
@@ -24,8 +22,15 @@ module Binder =
     /// <remarks>
     /// This <see cref="Binder" /> does not read from the configuration and always returns <c>Success</c>.
     /// </remarks>
-    /// <param name="x">The value to lift up in a <see cref="Binder" />.</param>
+    /// <param name="x">The value to wrap up in a <see cref="Binder" />.</param>
     let result x = x |> BindResult.result |> ofBindResult
+
+    /// <summary>Create a <see cref="Binder" /> from an error.</summary>
+    /// <remarks>
+    /// This <see cref="Binder" /> does not read from the configuration and always returns <c>Failure</c>.
+    /// </remarks>
+    /// <param name="e">The error to wrap up in a <see cref="Binder" />.</param>
+    let fail e = e |> Failure |> ofBindResult
 
     /// <summary>Unwraps the <see cref="Binder" />.</summary>
     /// <returns>The function which was contained inside in the <see cref="Binder" />.</returns>
@@ -36,6 +41,9 @@ module Binder =
     /// <param name="binder">The <see cref="Binder" /> to be evaluated.</param>
     /// <returns>A <see cref="BindResult" />.</returns>
     let eval config (binder: Binder<_, _>) = (run binder) config
+
+    /// <summary>Retrieves the configuration environment.</summary>
+    let ask = Binder Success
 
     /// <summary>
     /// Applies the <see cref="Binder" /> <paramref name="a" /> to the function <paramref name="f" />.
@@ -135,61 +143,3 @@ module Binder =
     /// <param name="y">The right hand side of the zip.</param>
     let zip x y : Binder<_, 'a * 'b> =
         Binder(fun config -> BindResult.zip (x |> eval config) (y |> eval config))
-
-    /// <summary>
-    /// Attempts to bind the child <see cref="IConfiguration" /> located at the <paramref name="key" /> of the
-    /// input <see cref="IConfiguration" />.
-    /// </summary>
-    /// <param name="key">The key at which to try and find a child <see cref="IConfiguration" />.</param>
-    /// <returns>
-    /// A <see cref="Binder" /> whose input is a parent <see cref="IConfiguration" /> and whose output when
-    /// evaluated is the child <see cref="IConfiguration" />.
-    /// </returns>
-    let section key =
-        Binder (fun (parent: #IConfiguration) ->
-            let section = parent.GetSection(key)
-
-            if section.Exists() then
-                Success section
-            else
-                [ $"The key '{key}' does not exist at '{parent |> path}'." ]
-                |> Failure)
-
-    /// <summary>
-    /// Binds the optional child <see cref="IConfiguration" /> located at the <paramref name="key" /> of the
-    /// input <see cref="IConfiguration" />.
-    /// </summary>
-    /// <param name="key">The key at which to try and find a child <see cref="IConfiguration" />.</param>
-    /// <returns>
-    /// A <see cref="Binder" /> whose input is a parent <see cref="IConfiguration" /> and whose output when
-    /// evaluated is the optional child <see cref="IConfiguration" />.
-    /// </returns>
-    let optSection key =
-        Binder (fun (parent: #IConfiguration) ->
-            let section = parent.GetSection(key)
-
-            Success(
-                if section.Exists() then
-                    Some section
-                else
-                    None
-            ))
-
-    module Section =
-        /// <summary>
-        /// Attempts to bind the value of the current <see cref="IConfiguration" /> .
-        /// </summary>
-        let value =
-            Binder (fun (section: #IConfigurationSection) ->
-                if section.GetChildren() |> Seq.isEmpty then
-                    section.Value |> Success
-                else
-                    [ $"Expected a simple value at '{section |> path}' but found an object." ]
-                    |> Failure)
-
-        /// <summary>
-        /// Attempts to bind the value of the current <see cref="IConfiguration" /> using the <paramref name="decoder"/>.
-        /// </summary>
-        /// <param name="decoder">The decoder to apply to the value.</param>
-        let valueOf decoder = value |> bind decoder
-

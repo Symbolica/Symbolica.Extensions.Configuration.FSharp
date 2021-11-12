@@ -1,8 +1,6 @@
 module Symbolica.Extensions.Configuration.FSharp.Binder
 
-open FsCheck
 open FsCheck.Xunit
-open Microsoft.Extensions.Configuration
 open Swensen.Unquote
 
 module OfBindResult =
@@ -14,6 +12,16 @@ module Result =
     [<Property>]
     let ``should create a Binder that ignoes the config and returns Success`` (x: int) (config: string) =
         test <@ x |> Binder.result |> Binder.eval config = Success(x) @>
+
+module Fail =
+    [<Property>]
+    let ``should create a Binder that ignoes the config and returns Failure`` (e: string) (config: string) =
+        test <@ [ e ] |> Binder.fail |> Binder.eval config = Failure([ e ]) @>
+
+module Ask =
+    [<Property>]
+    let ``should eval to Success(config)`` (config: string) =
+        test <@ Binder.ask |> Binder.eval config = Success(config) @>
 
 module Apply =
     type Binder<'a> = Binder<string, 'a>
@@ -138,74 +146,3 @@ module Zip =
         test
             <@ Binder.zip (Binder.ofBindResult (Failure(e1))) (Binder.ofBindResult (Failure(e2)))
                |> Binder.eval config = Failure(e1 |> List.append <| e2) @>
-
-module Section =
-    module Value =
-        [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
-        let ``when is not an object should be Success value`` (ConfigurationPath path) =
-            let section =
-                { Children = Seq.empty
-                  Path = path
-                  Value = "Value" }
-
-            test <@ Binder.Section.value |> Binder.eval section = Success("Value") @>
-
-        [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
-        let ``when section has children should be Failure`` (ConfigurationPath path) (ConfigurationKey childKey) =
-            let section =
-                { Children =
-                    [ { Children = Seq.empty
-                        Path = ConfigurationPath.Combine(path, childKey)
-                        Value = "Value" } ]
-                  Path = path
-                  Value = null }
-
-            test
-                <@ Binder.Section.value |> Binder.eval section = Failure(
-                    [ $"Expected a simple value at '{path}' but found an object." ]
-                ) @>
-
-    [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
-    let ``when section exists should be Success section`` (ConfigurationPath path) (ConfigurationKey key) =
-        let subSection =
-            { Children = Seq.empty
-              Path = ConfigurationPath.Combine(path, key)
-              Value = "Value" }
-
-        let section =
-            { Children = seq { subSection }
-              Path = path
-              Value = null }
-
-        test <@ key |> Binder.section |> Binder.eval section = Success(subSection :> IConfigurationSection) @>
-
-    [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
-    let ``when section does not exist should be Failure`` (ConfigurationPath path) (ConfigurationKey key) =
-        test
-            <@ key
-               |> Binder.section
-               |> Binder.eval (path |> SectionStub.Empty) = Failure([ $"The key '{key}' does not exist at '{path}'." ]) @>
-
-module OptSection =
-    [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
-    let ``when section exists should be Success Some section`` (ConfigurationPath path) (ConfigurationKey key) =
-
-        let subSection =
-            { Children = Seq.empty
-              Path = ConfigurationPath.Combine(path, key)
-              Value = "Value" }
-
-        let section =
-            { Children = seq { subSection }
-              Path = path
-              Value = null }
-
-        test
-            <@ key |> Binder.optSection |> Binder.eval section = Success(subSection :> IConfigurationSection |> Some) @>
-
-    [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
-    let ``when section does not exist should be Success None`` (ConfigurationPath path) (ConfigurationKey key) =
-        test
-            <@ key
-               |> Binder.optSection
-               |> Binder.eval (path |> SectionStub.Empty) = Success(None) @>
