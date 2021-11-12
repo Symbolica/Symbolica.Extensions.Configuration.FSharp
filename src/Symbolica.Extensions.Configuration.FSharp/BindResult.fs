@@ -57,6 +57,33 @@ module BindResult =
         | Success x -> x |> f |> Success
         | Failure e -> e |> Failure
 
+    /// <summary>
+    /// Runs the result generating function <paramref name="f"/> on the optional value creating a result of an optional value.
+    /// </summary>
+    let traverseOpt f : 'b option -> BindResult<'a option> =
+        function
+        | Some m -> (f m) |> map Some
+        | None -> None |> result
+
+    /// <summary>
+    /// Turns an <see cref="Option" /> of a <see cref="BindResult" /> into a <see cref="BindResult" /> of an <see cref="Option" />.
+    /// </summary>
+    let sequenceOpt (m: BindResult<'a> option) : BindResult<'a option> = m |> traverseOpt id
+
+    /// <summary>
+    /// Runs the result generating function <paramref name="f"/> on each element of the list creating a result of a list.
+    /// </summary>
+    let rec traverseList (f: 'a -> BindResult<'b>) (list: 'a list) : BindResult<'b list> =
+        let cons head tail = head :: tail
+        let (<!>) = map
+        let (<*>) = apply
+        List.foldBack (fun head tail -> cons <!> f head <*> tail) list (result [])
+
+    /// <summary>
+    /// Turns a <see cref="List" /> of <see cref="BindResult" /> into a <see cref="BindResult" /> of <see cref="List" />.
+    /// </summary>
+    let sequenceList (m: BindResult<'a> list) : BindResult<'a list> = m |> traverseList id
+
     /// <summary>Combines two <see cref="BindResult" /> instances.</summary>
     /// <remarks>
     /// If both instances are <c>Success</c> then the result is a <c>Success</c> containing a tuple with the value

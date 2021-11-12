@@ -89,6 +89,33 @@ module Binder =
     let map f (m: Binder<_, 'a>) : Binder<_, 'b> = Binder(run m >> BindResult.map f)
 
     /// <summary>
+    /// Runs the binder generating function <paramref name="f"/> on the optional value creating a binder for an optional value.
+    /// </summary>
+    let traverseOpt f : 'b option -> Binder<'config, 'a option> =
+        function
+        | Some m -> (f m) |> map Some
+        | None -> None |> result
+
+    /// <summary>
+    /// Turns an <see cref="Option" /> of a <see cref="Binder" /> into a <see cref="Binder" /> of an <see cref="Option" />.
+    /// </summary>
+    let sequenceOpt (m: Binder<_, 'a> option) : Binder<_, 'a option> = m |> traverseOpt id
+
+    /// <summary>
+    /// Runs the binder generating function <paramref name="f"/> on each element of the list creating a binder of a list.
+    /// </summary>
+    let rec traverseList (f: 'a -> Binder<_, 'b>) (list: 'a list) : Binder<_, 'b list> =
+        let cons head tail = head :: tail
+        let (<!>) = map
+        let (<*>) = apply
+        List.foldBack (fun head tail -> cons <!> f head <*> tail) list (result [])
+
+    /// <summary>
+    /// Turns a <see cref="List" /> of <see cref="Binder" /> into a <see cref="Binder" /> of <see cref="List" />.
+    /// </summary>
+    let sequenceList (m: Binder<_, 'a> list) : Binder<_, 'a list> = m |> traverseList id
+
+    /// <summary>
     /// Nests a <see cref="Binder" /> of a child configuration under a <see cref="Binder" /> of a
     /// parent <see cref="IConfiguration" />.
     /// </summary>

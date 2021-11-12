@@ -1,5 +1,6 @@
 module Symbolica.Extensions.Configuration.FSharp.Binder
 
+open FsCheck
 open FsCheck.Xunit
 open Swensen.Unquote
 
@@ -10,12 +11,12 @@ module OfBindResult =
 
 module Result =
     [<Property>]
-    let ``should create a Binder that ignoes the config and returns Success`` (x: int) (config: string) =
+    let ``should create a Binder that ignores the config and returns Success`` (x: int) (config: string) =
         test <@ x |> Binder.result |> Binder.eval config = Success(x) @>
 
 module Fail =
     [<Property>]
-    let ``should create a Binder that ignoes the config and returns Failure`` (e: string) (config: string) =
+    let ``should create a Binder that ignores the config and returns Failure`` (e: string) (config: string) =
         test <@ [ e ] |> Binder.fail |> Binder.eval config = Failure([ e ]) @>
 
 module Ask =
@@ -115,6 +116,90 @@ module Map =
                                                                  |> Binder.map f
                                                                  |> Binder.map g
                                                                  |> Binder.eval config) @>
+
+module TraverseOpt =
+    type Binder<'a> = Binder<string, 'a>
+
+    [<Property>]
+    let ``Some(Success(x)) traverse id should be Success(Some(x))`` (x: int) (config: string) =
+        test
+            <@ Some(Success(x) |> Binder.ofBindResult)
+               |> Binder.traverseOpt id
+               |> Binder.eval config = Success(Some(x)) @>
+
+    [<Property>]
+    let ``Some(Failure(e)) traverse id should be Failure(e)`` e (config: string) =
+        test
+            <@ Some(Failure(e) |> Binder.ofBindResult)
+               |> Binder.traverseOpt id
+               |> Binder.eval config = Failure(e) @>
+
+    [<Property>]
+    let ``None traverse id should be Success(None)`` (config: string) =
+        test
+            <@ None
+               |> Binder.traverseOpt id
+               |> Binder.eval config = Success(None) @>
+
+module SequenceOpt =
+    type Binder<'a> = Binder<string, 'a>
+
+    [<Property>]
+    let ``should be equal to traverse id`` (opt: Binder<string> option) config =
+        test
+            <@ opt |> Binder.sequenceOpt |> Binder.eval config = (opt |> Binder.traverseOpt id |> Binder.eval config) @>
+
+module TraverseList =
+    type Binder<'a> = Binder<string, 'a>
+
+    [<Property>]
+    let ``[Success(x) * n] traverse id should be Success [x * n]`` (xs: int list) (config: string) =
+        test
+            <@ xs
+               |> List.map Binder.result
+               |> Binder.traverseList id
+               |> Binder.eval config = (Success(xs): BindResult<int list>) @>
+
+    [<Property>]
+    let ``Binder list that contains Failure traverse id should be Failure containing all errors``
+        (list: BindResult<string> list)
+        (config: string)
+        =
+        list
+        |> List.exists (function
+            | Success _ -> false
+            | Failure _ -> true)
+        ==> lazy
+            (test
+                <@ list
+                   |> List.map Binder.ofBindResult
+                   |> Binder.traverseList id
+                   |> Binder.eval config = Failure(
+                    List.foldBack
+                        (function
+                        | Success _ -> id
+                        | Failure e -> fun es -> e :: es)
+                        list
+                        []
+                    |> List.reduce (List.append)
+                ) @>)
+
+    [<Property>]
+    let ``[] traverse id should be Success []`` config =
+        test
+            <@ ([]: Binder<int> list)
+               |> Binder.traverseList id
+               |> Binder.eval config = Success [] @>
+
+module SequenceList =
+    type Binder<'a> = Binder<string, 'a>
+
+    [<Property>]
+    let ``should be equal to traverse id`` (list: Binder<string> list) config =
+        test
+            <@ list |> Binder.sequenceList |> Binder.eval config = (list
+                                                                    |> Binder.traverseList id
+                                                                    |> Binder.eval config) @>
 
 module Zip =
     type Binder<'a> = Binder<string, 'a>

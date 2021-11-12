@@ -264,7 +264,7 @@ module Bool =
     [<Fact>]
     let ``should be Failure if string can not be converted to bool`` =
         test
-            <@ "string" |> Binder.run Bind.bool = Failure([ $"Could not decode 'string' as type 'System.Boolean'." ]) @>
+            <@ "string" |> Binder.run Bind.bool = Failure([ "Could not decode 'string' as type 'System.Boolean'." ]) @>
 
 module Char =
     [<Property>]
@@ -273,7 +273,7 @@ module Char =
 
     [<Fact>]
     let ``should be Failure if string can not be converted to char`` =
-        test <@ "string" |> Binder.run Bind.char = Failure([ $"Could not decode 'string' as type 'System.Char'." ]) @>
+        test <@ "string" |> Binder.run Bind.char = Failure([ "Could not decode 'string' as type 'System.Char'." ]) @>
 
 module DateTime =
     [<Property>]
@@ -288,7 +288,7 @@ module DateTime =
     let ``should be Failure if string can not be converted to DateTime`` =
         test
             <@ "string" |> Binder.run Bind.dateTime = Failure(
-                [ $"Could not decode 'string' as type 'System.DateTime'." ]
+                [ "Could not decode 'string' as type 'System.DateTime'." ]
             ) @>
 
 module Float =
@@ -302,7 +302,7 @@ module Float =
     [<Fact>]
     let ``should be Failure if string can not be converted to float`` =
         test
-            <@ "string" |> Binder.run Bind.float = Failure([ $"Could not decode 'string' as type 'System.Double'." ]) @>
+            <@ "string" |> Binder.run Bind.float = Failure([ "Could not decode 'string' as type 'System.Double'." ]) @>
 
 module Int16 =
     [<Property>]
@@ -311,7 +311,7 @@ module Int16 =
 
     [<Fact>]
     let ``should be Failure if string can not be converted to int16`` =
-        test <@ "string" |> Binder.run Bind.int16 = Failure([ $"Could not decode 'string' as type 'System.Int16'." ]) @>
+        test <@ "string" |> Binder.run Bind.int16 = Failure([ "Could not decode 'string' as type 'System.Int16'." ]) @>
 
 module Int =
     [<Property>]
@@ -320,7 +320,7 @@ module Int =
 
     [<Fact>]
     let ``should be Failure if string can not be converted to int`` =
-        test <@ "string" |> Binder.run Bind.int = Failure([ $"Could not decode 'string' as type 'System.Int32'." ]) @>
+        test <@ "string" |> Binder.run Bind.int = Failure([ "Could not decode 'string' as type 'System.Int32'." ]) @>
 
 module Int64 =
     [<Property>]
@@ -329,7 +329,7 @@ module Int64 =
 
     [<Fact>]
     let ``should be Failure if string can not be converted to int64`` =
-        test <@ "string" |> Binder.run Bind.int64 = Failure([ $"Could not decode 'string' as type 'System.Int64'." ]) @>
+        test <@ "string" |> Binder.run Bind.int64 = Failure([ "Could not decode 'string' as type 'System.Int64'." ]) @>
 
 module UInt16 =
     [<Property>]
@@ -339,7 +339,7 @@ module UInt16 =
     [<Fact>]
     let ``should be Failure if string can not be converted to uint16`` =
         test
-            <@ "string" |> Binder.run Bind.uint16 = Failure([ $"Could not decode 'string' as type 'System.UInt16'." ]) @>
+            <@ "string" |> Binder.run Bind.uint16 = Failure([ "Could not decode 'string' as type 'System.UInt16'." ]) @>
 
 module UInt =
     [<Property>]
@@ -348,7 +348,7 @@ module UInt =
 
     [<Fact>]
     let ``should be Failure if string can not be converted to uint`` =
-        test <@ "string" |> Binder.run Bind.uint = Failure([ $"Could not decode 'string' as type 'System.UInt32'." ]) @>
+        test <@ "string" |> Binder.run Bind.uint = Failure([ "Could not decode 'string' as type 'System.UInt32'." ]) @>
 
 module UInt64 =
     [<Property>]
@@ -358,7 +358,7 @@ module UInt64 =
     [<Fact>]
     let ``should be Failure if string can not be converted to uint64`` =
         test
-            <@ "string" |> Binder.run Bind.uint64 = Failure([ $"Could not decode 'string' as type 'System.UInt64'." ]) @>
+            <@ "string" |> Binder.run Bind.uint64 = Failure([ "Could not decode 'string' as type 'System.UInt64'." ]) @>
 
 module Uri =
     [<Property>]
@@ -384,5 +384,5 @@ module Uri =
         test
             <@ "string"
                |> Binder.run (Bind.uri System.UriKind.Absolute) = Failure(
-                [ $"Could not decode 'string' as type 'System.Uri'." ]
+                [ "Could not decode 'string' as type 'System.Uri'." ]
             ) @>
