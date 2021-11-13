@@ -1,8 +1,8 @@
 namespace Symbolica.Extensions.Configuration.FSharp
 
-type BindResult<'a> =
+type BindResult<'a, 'e> =
     | Success of 'a
-    | Failure of string list
+    | Failure of 'e
 
 module BindResult =
 
@@ -21,7 +21,7 @@ module BindResult =
     /// <param name="f">The function to which the value will be applied.</param>
     /// <param name="a">The value to be applied to the function.</param>
     /// <returns>A <see cref="BindResult" /> containing the result of applying the value to the function.</returns>
-    let apply f a : BindResult<'b> =
+    let apply (f: BindResult<'a -> 'b, _>) (a: BindResult<'a, _>) : BindResult<'b, _> =
         match f, a with
         | Failure e1, Failure e2 -> Failure(List.append e1 e2)
         | Failure e1, Success _ -> e1 |> Failure
@@ -35,7 +35,7 @@ module BindResult =
     /// </remarks>
     /// <param name="f">The function to which the value will be bound.</param>
     /// <returns>A <see cref="BindResult" />.</returns>
-    let bind f : BindResult<'a> -> BindResult<'b> =
+    let bind f : BindResult<'a, 'e> -> BindResult<'b, 'e> =
         function
         | Success x -> x |> f
         | Failure e -> e |> Failure
@@ -55,18 +55,26 @@ module BindResult =
         | Ok x -> Success x
         | Error e -> e |> Failure
 
-    /// <summary>Maps the output of the <see cref="BindResult" />.</summary>
-    /// <param name="f">The function used to map the output.</param>
-    /// <returns>A <see cref="BindResult" /> whose output is mapped by the function <paramref name="f" />.</returns>
-    let map f : BindResult<'a> -> BindResult<'b> =
+    /// <summary>Maps the <c>Success</c> case of the <see cref="BindResult" />.</summary>
+    /// <param name="f">The function used to map the value.</param>
+    /// <returns>A <see cref="BindResult" /> whose value is mapped by the function <paramref name="f" />.</returns>
+    let map f : BindResult<'a, 'e> -> BindResult<'b, 'e> =
         function
         | Success x -> x |> f |> Success
         | Failure e -> e |> Failure
 
+    /// <summary>Maps the <c>Failure</c> case of the <see cref="BindResult" />.</summary>
+    /// <param name="f">The function used to map the error.</param>
+    /// <returns>A <see cref="BindResult" /> whose error is mapped by the function <paramref name="f" />.</returns>
+    let mapFailure f : BindResult<_, 'e1> -> BindResult<_, 'e2> =
+        function
+        | Success x -> x |> Success
+        | Failure e -> e |> f |> Failure
+
     /// <summary>
     /// Runs the result generating function <paramref name="f"/> on the optional value creating a result of an optional value.
     /// </summary>
-    let traverseOpt f : 'b option -> BindResult<'a option> =
+    let traverseOpt f : 'b option -> BindResult<'a option, 'e> =
         function
         | Some m -> (f m) |> map Some
         | None -> None |> result
@@ -74,12 +82,12 @@ module BindResult =
     /// <summary>
     /// Turns an <see cref="Option" /> of a <see cref="BindResult" /> into a <see cref="BindResult" /> of an <see cref="Option" />.
     /// </summary>
-    let sequenceOpt (m: BindResult<'a> option) : BindResult<'a option> = m |> traverseOpt id
+    let sequenceOpt (m: BindResult<'a, 'e> option) : BindResult<'a option, 'e> = m |> traverseOpt id
 
     /// <summary>
     /// Runs the result generating function <paramref name="f"/> on each element of the list creating a result of a list.
     /// </summary>
-    let rec traverseList (f: 'a -> BindResult<'b>) (list: 'a list) : BindResult<'b list> =
+    let rec traverseList (f: 'a -> BindResult<'b, _>) (list: 'a list) : BindResult<'b list, _> =
         let cons head tail = head :: tail
         let (<!>) = map
         let (<*>) = apply
@@ -88,7 +96,7 @@ module BindResult =
     /// <summary>
     /// Turns a <see cref="List" /> of <see cref="BindResult" /> into a <see cref="BindResult" /> of <see cref="List" />.
     /// </summary>
-    let sequenceList (m: BindResult<'a> list) : BindResult<'a list> = m |> traverseList id
+    let sequenceList (m: BindResult<'a, _> list) : BindResult<'a list, _> = m |> traverseList id
 
     /// <summary>Combines two <see cref="BindResult" /> instances.</summary>
     /// <remarks>
@@ -98,7 +106,7 @@ module BindResult =
     /// </remarks>
     /// <param name="x">The left hand side of the zip.</param>
     /// <param name="y">The right hand side of the zip.</param>
-    let zip x y : BindResult<'a * 'b> =
+    let zip (x: BindResult<'a, _>) (y: BindResult<'b, _>) : BindResult<'a * 'b, _> =
         match x, y with
         | Failure e1, Failure e2 -> Failure(List.append e1 e2)
         | Failure e1, Success _ -> e1 |> Failure

@@ -6,7 +6,7 @@ open Swensen.Unquote
 
 module OfBindResult =
     [<Property>]
-    let ``should create a Binder that ignores the config`` (r: BindResult<int>) (config: string) =
+    let ``should create a Binder that ignores the config`` (r: BindResult<int, string>) (config: string) =
         test <@ r |> Binder.ofBindResult |> Binder.eval config = r @>
 
 module Result =
@@ -17,7 +17,7 @@ module Result =
 module Fail =
     [<Property>]
     let ``should create a Binder that ignores the config and returns Failure`` (e: string) (config: string) =
-        test <@ [ e ] |> Binder.fail |> Binder.eval config = Failure([ e ]) @>
+        test <@ e |> Binder.fail |> Binder.eval config = Failure(e) @>
 
 module Ask =
     [<Property>]
@@ -25,13 +25,14 @@ module Ask =
         test <@ Binder.ask |> Binder.eval config = Success(config) @>
 
 module Apply =
-    type Binder<'a> = Binder<string, 'a>
+    type Binder<'a> = Binder<string, 'a, string list>
 
     let (<*>) = Binder.apply
 
     [<Property>]
     let ``should obey identity law`` (w: Binder<int>) config =
-        test <@ (Binder.result id <*> w) |> Binder.eval config = (w |> Binder.eval config) @>
+        let id: Binder<_> = Binder.result id
+        test <@ (id <*> w) |> Binder.eval config = (w |> Binder.eval config) @>
 
     [<Property>]
     let ``should obey composition law`` (u: Binder<int -> string>) (v: Binder<bool -> int>) (w: Binder<bool>) config =
@@ -48,8 +49,9 @@ module Apply =
     [<Property>]
     let ``should obey interchange law`` (u: Binder<string -> string>) x config =
         test
-            <@ u <*> Binder.result x |> Binder.eval config = ((Binder.result (fun f -> x |> f) <*> u)
-                                                              |> Binder.eval config) @>
+            <@ u <*> (Binder.result x: Binder<_>)
+               |> Binder.eval config = (((Binder.result (fun f -> x |> f): Binder<_>) <*> u)
+                                        |> Binder.eval config) @>
 
     [<Property>]
     let ``Failure(e1) apply Success(x) should be Failure(e1)`` (e1: string list) (x: int) config =
@@ -77,7 +79,7 @@ module Apply =
                |> Binder.eval config = Failure(e1 |> List.append <| e2) @>
 
 module Bind =
-    type Binder<'a> = Binder<string, 'a>
+    type Binder<'a> = Binder<string, 'a, string>
     let (>>=) m f = Binder.bind f m
 
     [<Property>]
@@ -103,7 +105,7 @@ module Bind =
                |> Binder.eval config = Failure(e) @>
 
 module Map =
-    type Binder<'a> = Binder<string, 'a>
+    type Binder<'a> = Binder<string, 'a, string>
 
     [<Property>]
     let ``should obey identity law`` (m: Binder<int>) config =
@@ -117,8 +119,25 @@ module Map =
                                                                  |> Binder.map g
                                                                  |> Binder.eval config) @>
 
+module MapFailure =
+    type Binder<'a, 'e> = Binder<string, 'a, 'e>
+
+    [<Property>]
+    let ``should obey identity law`` (m: Binder<int, string>) config =
+        test <@ m |> Binder.mapFailure id |> Binder.eval config = (m |> Binder.eval config) @>
+
+    [<Property>]
+    let ``should obey associativity law`` (m: Binder<string, bool>) (f: bool -> int) (g: int -> string) config =
+        test
+            <@ m
+               |> Binder.mapFailure (f >> g)
+               |> Binder.eval config = (m
+                                        |> Binder.mapFailure f
+                                        |> Binder.mapFailure g
+                                        |> Binder.eval config) @>
+
 module TraverseOpt =
-    type Binder<'a> = Binder<string, 'a>
+    type Binder<'a> = Binder<string, 'a, string>
 
     [<Property>]
     let ``Some(Success(x)) traverse id should be Success(Some(x))`` (x: int) (config: string) =
@@ -128,7 +147,7 @@ module TraverseOpt =
                |> Binder.eval config = Success(Some(x)) @>
 
     [<Property>]
-    let ``Some(Failure(e)) traverse id should be Failure(e)`` e (config: string) =
+    let ``Some(Failure(e)) traverse id should be Failure(e)`` (e: string) (config: string) =
         test
             <@ Some(Failure(e) |> Binder.ofBindResult)
                |> Binder.traverseOpt id
@@ -142,7 +161,7 @@ module TraverseOpt =
                |> Binder.eval config = Success(None) @>
 
 module SequenceOpt =
-    type Binder<'a> = Binder<string, 'a>
+    type Binder<'a> = Binder<string, 'a, string>
 
     [<Property>]
     let ``should be equal to traverse id`` (opt: Binder<string> option) config =
@@ -150,7 +169,8 @@ module SequenceOpt =
             <@ opt |> Binder.sequenceOpt |> Binder.eval config = (opt |> Binder.traverseOpt id |> Binder.eval config) @>
 
 module TraverseList =
-    type Binder<'a> = Binder<string, 'a>
+    type BindResult<'a> = BindResult<'a, string list>
+    type Binder<'a> = Binder<string, 'a, string list>
 
     [<Property>]
     let ``[Success(x) * n] traverse id should be Success [x * n]`` (xs: int list) (config: string) =
@@ -192,7 +212,7 @@ module TraverseList =
                |> Binder.eval config = Success [] @>
 
 module SequenceList =
-    type Binder<'a> = Binder<string, 'a>
+    type Binder<'a> = Binder<string, 'a, string list>
 
     [<Property>]
     let ``should be equal to traverse id`` (list: Binder<string> list) config =
@@ -202,7 +222,7 @@ module SequenceList =
                                                                     |> Binder.eval config) @>
 
 module Extend =
-    type Binder<'a> = Binder<string, 'a>
+    type Binder<'a> = Binder<string, 'a, string>
 
     [<Property>]
     let ``ask |> extend m should be m`` (m: Binder<string>) config =
@@ -214,13 +234,13 @@ module Extend =
     [<Property>]
     let ``fail e |> extend m should be Failure(e)`` (e: string) (m: Binder<string>) (config: string) =
         test
-            <@ [ e ]
+            <@ e
                |> Binder.fail
                |> Binder.extend m
-               |> Binder.eval config = Failure([ e ]) @>
+               |> Binder.eval config = Failure(e) @>
 
 module ExtendOpt =
-    type Binder<'a> = Binder<string, 'a>
+    type Binder<'a> = Binder<string, 'a, string>
 
     [<Property>]
     let ``ask |> map Some |> extendOpt m |> eval config should be m |> eval config |> BindResult.map Some``
@@ -243,13 +263,13 @@ module ExtendOpt =
     [<Property>]
     let ``fail e |> extend m |> eval config should be Failure(e)`` (e: string) (m: Binder<string>) (config: string) =
         test
-            <@ [ e ]
+            <@ e
                |> Binder.fail
                |> Binder.extendOpt m
-               |> Binder.eval config = Failure([ e ]) @>
+               |> Binder.eval config = Failure(e) @>
 
 module Zip =
-    type Binder<'a> = Binder<string, 'a>
+    type Binder<'a> = Binder<string, 'a, string list>
 
     [<Property>]
     let ```zip Success(a) Success(b) should be Success(a, b)`` (a: int) (b: string) config =

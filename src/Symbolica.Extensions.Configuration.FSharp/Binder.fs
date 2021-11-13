@@ -7,7 +7,7 @@ namespace Symbolica.Extensions.Configuration.FSharp
 /// By utilising the Reader monad the caller can avoid having to supply the configuration
 /// until the end of the computation. Making the binding code less cluttered and more declarative.
 /// </remarks>
-type Binder<'config, 'a> = Binder of ('config -> BindResult<'a>)
+type Binder<'config, 'a, 'e> = Binder of ('config -> BindResult<'a, 'e>)
 
 module Binder =
     /// <summary>Create a <see cref="Binder" /> from a <see cref="BindResult" />.</summary>
@@ -40,7 +40,7 @@ module Binder =
     /// <param name="config">The configuration to bind to.</param>
     /// <param name="binder">The <see cref="Binder" /> to be evaluated.</param>
     /// <returns>A <see cref="BindResult" />.</returns>
-    let eval config (binder: Binder<_, _>) = (run binder) config
+    let eval config (binder: Binder<'config, 'a, 'e>) = (run binder) config
 
     /// <summary>Retrieves the configuration environment.</summary>
     let ask = Binder Success
@@ -56,7 +56,7 @@ module Binder =
     /// <param name="f">The function to which the value will be applied.</param>
     /// <param name="a">The value to be applied to the function.</param>
     /// <returns>A <see cref="Binder" /> containing the result of applying the value to the function.</returns>
-    let apply f a : Binder<_, _> =
+    let apply (f: Binder<'config, 'a -> 'b, _>) (a: Binder<'config, 'a, _>) : Binder<'config, 'b, _> =
         Binder (fun config ->
             a
             |> eval config
@@ -70,7 +70,7 @@ module Binder =
     /// <param name="f">The function to which the value will be bound.</param>
     /// <param name="m">The <see cref="Binder" /> that contains the input value to the function <paramref name="f" />.</param>
     /// <returns>A <see cref="Binder" />.</returns>
-    let bind (f: 'a -> Binder<_, 'b>) (m: Binder<_, 'a>) : Binder<_, 'b> =
+    let bind (f: 'a -> Binder<'config, 'b, 'e>) (m: Binder<'config, 'a, 'e>) : Binder<'config, 'b, 'e> =
         Binder (fun config ->
             m
             |> eval config
@@ -80,18 +80,25 @@ module Binder =
     /// <param name="f">The function used to map the input.</param>
     /// <param name="m">The <see cref="Binder" /> to be contramapped.</param>
     /// <returns>A <see cref="Binder" /> whose input is mapped by the function <paramref name="f" />.</returns>
-    let contramap f (m: Binder<_, _>) = Binder(f >> run m)
+    let contramap f (m: Binder<'config, 'a, 'e>) : Binder<'c, 'a, 'e> = Binder(f >> run m)
 
     /// <summary>Maps the output of the <see cref="Binder" />.</summary>
     /// <param name="f">The function used to map the output.</param>
     /// <param name="m">The <see cref="Binder" /> to be mapped.</param>
     /// <returns>A <see cref="Binder" /> whose output is mapped by the function <paramref name="f" />.</returns>
-    let map f (m: Binder<_, 'a>) : Binder<_, 'b> = Binder(run m >> BindResult.map f)
+    let map f (m: Binder<'config, 'a, 'e>) : Binder<'config, 'b, 'e> = Binder(run m >> BindResult.map f)
+
+    /// <summary>Maps the <c>Failure</c> case of the output of the <see cref="Binder" />.</summary>
+    /// <param name="f">The function used to map the error.</param>
+    /// <param name="m">The <see cref="Binder" /> to be mapped.</param>
+    /// <returns>A <see cref="Binder" /> whose error output is mapped by the function <paramref name="f" />.</returns>
+    let mapFailure f (m: Binder<'config, 'a, 'e1>) : Binder<'config, 'a, 'e2> =
+        Binder(run m >> BindResult.mapFailure f)
 
     /// <summary>
     /// Runs the binder generating function <paramref name="f"/> on the optional value creating a binder for an optional value.
     /// </summary>
-    let traverseOpt f : 'b option -> Binder<'config, 'a option> =
+    let traverseOpt f : 'b option -> Binder<'config, 'a option, 'e> =
         function
         | Some m -> (f m) |> map Some
         | None -> None |> result
@@ -99,12 +106,12 @@ module Binder =
     /// <summary>
     /// Turns an <see cref="Option" /> of a <see cref="Binder" /> into a <see cref="Binder" /> of an <see cref="Option" />.
     /// </summary>
-    let sequenceOpt (m: Binder<_, 'a> option) : Binder<_, 'a option> = m |> traverseOpt id
+    let sequenceOpt (m: Binder<'config, 'a, 'e> option) : Binder<'config, 'a option, 'e> = m |> traverseOpt id
 
     /// <summary>
     /// Runs the binder generating function <paramref name="f"/> on each element of the list creating a binder of a list.
     /// </summary>
-    let rec traverseList (f: 'a -> Binder<_, 'b>) (list: 'a list) : Binder<_, 'b list> =
+    let rec traverseList (f: 'a -> Binder<'config, 'b, _>) (list: 'a list) : Binder<'config, 'b list, _> =
         let cons head tail = head :: tail
         let (<!>) = map
         let (<*>) = apply
@@ -113,7 +120,7 @@ module Binder =
     /// <summary>
     /// Turns a <see cref="List" /> of <see cref="Binder" /> into a <see cref="Binder" /> of <see cref="List" />.
     /// </summary>
-    let sequenceList (m: Binder<_, 'a> list) : Binder<_, 'a list> = m |> traverseList id
+    let sequenceList (m: Binder<'config, 'a, _> list) : Binder<'config, 'a list, _> = m |> traverseList id
 
     /// <summary>
     /// Extends a <see cref="Binder" /> by feeding its output to the input of a subsequent binder.
@@ -132,7 +139,7 @@ module Binder =
     /// A <see cref="Binder" /> that is the composition of first evaluating <paramref name="wa" /> and
     /// then evaluating <paramref name="wb" /> using the output of <paramref name="wa" />.
     /// </returns>
-    let extend (wb: Binder<'config, _>) (wa: Binder<_, 'config>) = wa |> bind (run wb >> ofBindResult)
+    let extend (wb: Binder<'c, 'a, 'e>) (wa: Binder<'config, 'c, 'e>) = wa |> bind (run wb >> ofBindResult)
 
     /// <summary>
     /// Extends a <see cref="Binder" /> by feeding its optional output to the input of a subsequent binder.
@@ -152,7 +159,7 @@ module Binder =
     /// A <see cref="Binder" /> that is the composition of first evaluating <paramref name="wa" /> and
     /// then evaluating <paramref name="wb" /> using the output of <paramref name="wa" />.
     /// </returns>
-    let extendOpt (wb: Binder<'config, 'a>) (wa: Binder<_, 'config option>) : Binder<_, 'a option> =
+    let extendOpt (wb: Binder<'c, 'a, 'e>) (wa: Binder<'config, 'c option, 'e>) : Binder<'config, 'a option, 'e> =
         wa
         |> bind (BindResult.traverseOpt (run wb) >> ofBindResult)
 
@@ -164,5 +171,5 @@ module Binder =
     /// </remarks>
     /// <param name="x">The left hand side of the zip.</param>
     /// <param name="y">The right hand side of the zip.</param>
-    let zip x y : Binder<_, 'a * 'b> =
+    let zip x y : Binder<'config, 'a * 'b, _> =
         Binder(fun config -> BindResult.zip (x |> eval config) (y |> eval config))
