@@ -64,7 +64,7 @@ module Binder =
 
     /// <summary>Monadic bind for a <see cref="Binder" />.</summary>
     /// <remarks>
-    /// If <paramref name="m" /> evaulates to <c>Success</c> then the function <paramref name="f" /> will be evaluated
+    /// If <paramref name="m" /> evaluates to <c>Success</c> then the function <paramref name="f" /> will be evaluated
     /// with the data contained in <paramref name="m" />; otherwise the original <c>Failure</c> will be maintained.
     /// </remarks>
     /// <param name="f">The function to which the value will be bound.</param>
@@ -173,3 +173,16 @@ module Binder =
     /// <param name="y">The right hand side of the zip.</param>
     let zip x y : Binder<'config, 'a * 'b, _> =
         Binder(fun config -> BindResult.zip (x |> eval config) (y |> eval config))
+
+type Binder<'config, 'a, 'e> with
+    /// <summary>The map operator for a <see cref="Binder" />.</summary>
+    /// <seealso cref="Binder.map" />
+    static member (<!>)(f, m) = BindResult.map f m
+
+    /// <summary>The apply operator for a <see cref="Binder" />.</summary>
+    /// <seealso cref="Binder.apply" />
+    static member (<*>)(f, a) = a |> Binder.apply f
+
+    /// <summary>The bind operator for a <see cref="Binder" />.</summary>
+    /// <seealso cref="Binder.bind" />
+    static member (>>=)(m, f) = Binder.bind f m

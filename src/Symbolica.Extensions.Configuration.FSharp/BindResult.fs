@@ -112,3 +112,16 @@ module BindResult =
         | Failure e1, Success _ -> e1 |> Failure
         | Success _, Failure e2 -> e2 |> Failure
         | Success a, Success b -> Success(a, b)
+
+type BindResult<'a, 'e> with
+    /// <summary>The map operator for a <see cref="BindResult" />.</summary>
+    /// <seealso cref="BindResult.map" />
+    static member (<!>)(f, m) = BindResult.map f m
+
+    /// <summary>The apply operator for a <see cref="BindResult" />.</summary>
+    /// <seealso cref="BindResult.apply" />
+    static member (<*>)(f, a) = a |> BindResult.apply f
+
+    /// <summary>The bind operator for a <see cref="BindResult" />.</summary>
+    /// <seealso cref="BindResult.bind" />
+    static member (>>=)(m, f) = BindResult.bind f m

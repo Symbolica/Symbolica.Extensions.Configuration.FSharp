@@ -11,7 +11,6 @@ module Result =
 
 module Apply =
     type BindResult<'a> = BindResult<'a, string list>
-    let (<*>) = BindResult.apply
 
     [<Property>]
     let ``should obey identity law`` (w: BindResult<int>) = test <@ Success(id) <*> w = w @>
@@ -22,7 +21,7 @@ module Apply =
         (v: BindResult<bool -> int>)
         (w: BindResult<bool>)
         =
-        test <@ Success(<<) <*> u <*> v <*> w = (u <*> (v <*> w)) @>
+        test <@ (<<) <!> u <*> v <*> w = (u <*> (v <*> w)) @>
 
     [<Property>]
     let ``should obey homomorphism law`` (f: string -> string) x =
@@ -48,7 +47,6 @@ module Apply =
 
 module Bind =
     type BindResult<'a> = BindResult<'a, string>
-    let (>>=) m f = BindResult.bind f m
 
     [<Property>]
     let ``should obey left identity`` x (f: int -> BindResult<int>) = test <@ Success(x) >>= f = (f x) @>
@@ -57,7 +55,7 @@ module Bind =
     let ``should obey right identity`` (m: BindResult<int>) = test <@ m >>= Success = m @>
 
     [<Property>]
-    let ``should obey associativity`` m (f: bool -> BindResult<int>) (g: int -> BindResult<string>) =
+    let ``should obey associativity`` (m: BindResult<_>) (f: bool -> BindResult<int>) (g: int -> BindResult<string>) =
         test <@ (m >>= f) >>= g = (m >>= (fun x -> x |> f >>= g)) @>
 
     [<Property>]
