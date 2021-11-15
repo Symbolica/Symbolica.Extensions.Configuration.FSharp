@@ -1,7 +1,8 @@
 module Symbolica.Extensions.Configuration.FSharp.Builders
 
+open FsCheck
 open Swensen.Unquote
-open Xunit
+open global.Xunit
 
 type SubOptions =
     { OptionalNumber: float option
@@ -43,29 +44,29 @@ let ``should bind when configuration correct`` () =
         { Children =
             [ { Children =
                   [ { Children = Seq.empty
-                      Path = "Name"
+                      Path = ConfigPathSegment "Name"
                       Value = "A name" }
                     { Children =
                         [ { Children = Seq.empty
-                            Path = "MaybeDecimal"
+                            Path = ConfigPathSegment "MaybeDecimal"
                             Value = "1.0" }
                           { Children = Seq.empty
-                            Path = "bool"
+                            Path = ConfigPathSegment "bool"
                             Value = "true" } ]
-                      Path = "Sub"
+                      Path = ConfigPathSegment "Sub"
                       Value = null }
                     { Children =
                         [ { Children = Seq.empty
-                            Path = "MaybeDecimal"
+                            Path = ConfigPathSegment "MaybeDecimal"
                             Value = "2.0" }
                           { Children = Seq.empty
-                            Path = "bool"
+                            Path = ConfigPathSegment "bool"
                             Value = "false" } ]
-                      Path = "OptSub"
+                      Path = ConfigPathSegment "OptSub"
                       Value = null } ]
-                Path = "Options"
+                Path = ConfigPathSegment "Options"
                 Value = null } ]
-          Path = System.String.Empty
+          Path = ConfigPathSegment.empty
           Value = null }
 
     test
@@ -86,20 +87,20 @@ let ``should bind successfully when optional config missing`` () =
         { Children =
             [ { Children =
                   [ { Children = Seq.empty
-                      Path = "Name"
+                      Path = ConfigPathSegment "Name"
                       Value = "A name" }
                     { Children =
                         [ { Children = Seq.empty
-                            Path = "MaybeDecimal"
+                            Path = ConfigPathSegment "MaybeDecimal"
                             Value = null }
                           { Children = Seq.empty
-                            Path = "bool"
+                            Path = ConfigPathSegment "bool"
                             Value = "true" } ]
-                      Path = "Sub"
+                      Path = ConfigPathSegment "Sub"
                       Value = null } ]
-                Path = "Options"
+                Path = ConfigPathSegment "Options"
                 Value = null } ]
-          Path = System.String.Empty
+          Path = ConfigPathSegment.empty
           Value = null }
 
     test
@@ -115,14 +116,14 @@ let ``should fail when non optional config missing`` () =
         { Children =
             [ { Children =
                   [ { Children = Seq.empty
-                      Path = "NotTheNameKey"
+                      Path = ConfigPathSegment "NotTheNameKey"
                       Value = "A name" }
                     { Children = Seq.empty
-                      Path = "Sub"
+                      Path = ConfigPathSegment "Sub"
                       Value = null } ]
-                Path = "Options"
+                Path = ConfigPathSegment "Options"
                 Value = null } ]
-          Path = System.String.Empty
+          Path = ConfigPathSegment.empty
           Value = null }
 
     test
