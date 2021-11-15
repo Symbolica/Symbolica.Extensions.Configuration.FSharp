@@ -201,6 +201,53 @@ module SequenceList =
                                                                     |> Binder.traverseList id
                                                                     |> Binder.eval config) @>
 
+module Extend =
+    type Binder<'a> = Binder<string, 'a>
+
+    [<Property>]
+    let ``ask |> extend m should be m`` (m: Binder<string>) config =
+        test
+            <@ Binder.ask
+               |> Binder.extend m
+               |> Binder.eval config = (m |> Binder.eval config) @>
+
+    [<Property>]
+    let ``fail e |> extend m should be Failure(e)`` (e: string) (m: Binder<string>) (config: string) =
+        test
+            <@ [ e ]
+               |> Binder.fail
+               |> Binder.extend m
+               |> Binder.eval config = Failure([ e ]) @>
+
+module ExtendOpt =
+    type Binder<'a> = Binder<string, 'a>
+
+    [<Property>]
+    let ``ask |> map Some |> extendOpt m |> eval config should be m |> eval config |> BindResult.map Some``
+        (m: Binder<string>)
+        config
+        =
+        test
+            <@ Binder.ask
+               |> Binder.map Some
+               |> Binder.extendOpt m
+               |> Binder.eval config = (m |> Binder.eval config |> BindResult.map Some) @>
+
+    [<Property>]
+    let ``result None |> extendOpt m |> eval config should be Success(None)`` (m: Binder<string>) (config: string) =
+        test
+            <@ Binder.result None
+               |> Binder.extendOpt m
+               |> Binder.eval config = Success(None) @>
+
+    [<Property>]
+    let ``fail e |> extend m |> eval config should be Failure(e)`` (e: string) (m: Binder<string>) (config: string) =
+        test
+            <@ [ e ]
+               |> Binder.fail
+               |> Binder.extendOpt m
+               |> Binder.eval config = Failure([ e ]) @>
+
 module Zip =
     type Binder<'a> = Binder<string, 'a>
 
