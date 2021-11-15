@@ -9,9 +9,10 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="5.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ConfigurationExtensions.fs" />
+    <Compile Include="SemiGroup.fs" />
     <Compile Include="BindResult.fs" />
     <Compile Include="Binder.fs" />
+    <Compile Include="Error.fs" />
     <Compile Include="Bind.fs" />
   </ItemGroup>
 </Project>

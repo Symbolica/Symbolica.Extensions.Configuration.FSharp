@@ -5,10 +5,22 @@ open Microsoft.Extensions.Configuration
 
 type Bind() =
     member _.Bind(x: Binder<_, _, _>, f) = x |> Binder.bind f
-    member _.BindReturn(x: Binder<_, _, _>, f) = x |> Binder.map f
+    member _.BindReturn(x: Binder<_, 'a, Errors<_>>, f) : Binder<_, 'b, Errors<_>> = x |> Binder.map f
+
+    member this.BindReturn(x: Binder<_, 'a, ApplicativeErrors<Error>>, f) : Binder<_, 'b, Errors<_>> =
+        this.BindReturn(x |> Binder.mapFailure Errors.AllOf, f)
+
+    member this.BindReturn(x: Binder<_, 'a, Error>, f) : Binder<_, 'b, Errors<_>> =
+        this.BindReturn(x |> Binder.mapFailure Errors.single, f)
+
     member _.MergeSources(x1, x2) = Binder.zip x1 x2
-    member _.Return(x: 'a) : Binder<_, 'a, _> = x |> Binder.result
-    member _.ReturnFrom(x: Binder<_, _, _>) = x
+    member _.Return x : Binder<_, 'a, Errors<_>> = x |> Binder.result
+    member _.ReturnFrom(x: Binder<_, _, Errors<_>>) : Binder<_, _, Errors<_>> = x
+
+    member _.ReturnFrom(x: Binder<_, _, ApplicativeErrors<Error>>) : Binder<_, _, Errors<_>> =
+        x |> Binder.mapFailure Errors.AllOf
+
+    member _.ReturnFrom(x: Binder<_, _, Error>) : Binder<_, _, Errors<_>> = x |> Binder.mapFailure Errors.single
 
 [<AutoOpen>]
 module Builder =
@@ -16,7 +28,7 @@ module Builder =
     /// <returns>An instance of the builder.</returns>
     let bind = Bind()
 
-/// Contains combinator functions for building new binders.
+/// Contains binders for common types and combinator functions for building new binders.
 module Bind =
     /// <summary>A combinator for taking an existing binder and nesting it under a parent section at the given key.</summary>
     /// <param name="key">The key of the child section to which the <paramref name="sectionBinder" /> should be bound.</param>
@@ -29,9 +41,9 @@ module Bind =
             if section.Exists() then
                 Success section
             else
-                [ $"The key '{key}' does not exist at '{parent |> path}'." ]
-                |> Failure)
+                Error.KeyNotFound |> Errors.single |> Failure)
         |> Binder.extend sectionBinder
+        |> Binder.mapFailure (fun e -> Error.SectionError(key, e))
 
     /// <summary>A combinator for taking an existing binder and nesting it under an optional parent section at the given key.</summary>
     /// <remarks>If the <paramref name="key" /> does not exist or has an empty value then the binder will evaluate to <c>None</c>.</remarks>
@@ -49,23 +61,26 @@ module Bind =
                     None
             ))
         |> Binder.extendOpt sectionBinder
+        |> Binder.mapFailure (fun e -> Error.SectionError(key, e))
 
     let private decode decoder : Binder<_, _, _> =
-        Binder(fun value -> decoder |> Binder.eval value)
+        Binder (fun value ->
+            decoder
+            |> Binder.eval value
+            |> BindResult.mapFailure (fun error -> Error.ValueError(value, error) |> Errors.single))
 
     let private readValue =
         Binder (fun (section: #IConfigurationSection) ->
             if section.GetChildren() |> Seq.isEmpty then
                 section.Value |> Success
             else
-                [ $"Expected a simple value at '{section |> path}' but found an object." ]
-                |> Failure)
+                Error.NotAValueNode |> Errors.single |> Failure)
 
     /// <summary>Binds the value at the <paramref name="key" /> with the <paramref name="decoder" />.</summary>
     /// <param name="key">The key whose value should be bound.</param>
     /// <param name="decoder">The binder to use when converting the string value.</param>
     /// <returns>A binder for the value at the <paramref name="key" />.</returns>
-    let value key decoder : Binder<'config, 'a, _> =
+    let value key decoder : Binder<'config, 'a, Error> =
         section key (readValue |> Binder.extend (decode decoder))
 
     /// <summary>Binds the optional value at the <paramref name="key" /> with the <paramref name="decoder" />.</summary>
@@ -73,7 +88,7 @@ module Bind =
     /// <param name="key">The key whose value should be bound.</param>
     /// <param name="decoder">The binder to use when converting the string value.</param>
     /// <returns>A binder for the optional value at the <paramref name="key" />.</returns>
-    let optValue key decoder : Binder<'config, 'a option, _> =
+    let optValue key decoder : Binder<'config, 'a option, Error> =
         optSection key (readValue |> Binder.extend (decode decoder))
 
     /// <summary>Creates a <see cref="Binder" /> from a System.Type.TryParse style parsing function.</summary>
@@ -86,7 +101,10 @@ module Bind =
         Binder (fun value ->
             match parser value with
             | true, x -> Success x
-            | false, _ -> Failure [ $"Could not decode '{value}' as type '{typeof<'parsed>}'." ])
+            | false, _ ->
+                typeof<'parsed>.Name
+                |> ValueError.InvalidType
+                |> Failure)
 
     /// <summary>A <see cref="Binder" /> for <see cref="System.Boolean" /> values.</summary>
     let bool = tryParseable Boolean.TryParse

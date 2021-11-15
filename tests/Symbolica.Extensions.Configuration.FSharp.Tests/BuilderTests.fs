@@ -126,8 +126,15 @@ let ``should fail when non optional config missing`` () =
           Path = ConfigPathSegment.empty
           Value = null }
 
-    test
-        <@ config |> mkOptions = Failure(
-            [ "The key 'Name' does not exist at 'Options'."
-              "The key 'Sub' does not exist at 'Options'." ]
-        ) @>
+    let expected =
+        Failure(
+            Error.SectionError(
+                "Options",
+                Errors.AllOf(
+                    Error.keyNotFound "Name"
+                    +& Error.keyNotFound "Sub"
+                )
+            )
+        )
+
+    test <@ config |> mkOptions = expected @>
