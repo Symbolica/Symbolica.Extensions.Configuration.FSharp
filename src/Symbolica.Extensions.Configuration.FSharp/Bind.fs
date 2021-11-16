@@ -4,11 +4,11 @@ open System
 open Microsoft.Extensions.Configuration
 
 type Bind() =
-    member _.Bind(x: Binder<_, _>, f) = x |> Binder.bind f
-    member _.BindReturn(x: Binder<_, _>, f) = x |> Binder.map f
+    member _.Bind(x: Binder<_, _, _>, f) = x |> Binder.bind f
+    member _.BindReturn(x: Binder<_, _, _>, f) = x |> Binder.map f
     member _.MergeSources(x1, x2) = Binder.zip x1 x2
-    member _.Return(x: 'a) : Binder<_, 'a> = x |> Binder.result
-    member _.ReturnFrom(x: Binder<_, _>) = x
+    member _.Return(x: 'a) : Binder<_, 'a, _> = x |> Binder.result
+    member _.ReturnFrom(x: Binder<_, _, _>) = x
 
 [<AutoOpen>]
 module Builder =
@@ -50,7 +50,7 @@ module Bind =
             ))
         |> Binder.extendOpt sectionBinder
 
-    let private decode decoder : Binder<_, _> =
+    let private decode decoder : Binder<_, _, _> =
         Binder(fun value -> decoder |> Binder.eval value)
 
     let private readValue =
@@ -65,7 +65,7 @@ module Bind =
     /// <param name="key">The key whose value should be bound.</param>
     /// <param name="decoder">The binder to use when converting the string value.</param>
     /// <returns>A binder for the value at the <paramref name="key" />.</returns>
-    let value key decoder : Binder<'config, 'a> =
+    let value key decoder : Binder<'config, 'a, _> =
         section key (readValue |> Binder.extend (decode decoder))
 
     /// <summary>Binds the optional value at the <paramref name="key" /> with the <paramref name="decoder" />.</summary>
@@ -73,7 +73,7 @@ module Bind =
     /// <param name="key">The key whose value should be bound.</param>
     /// <param name="decoder">The binder to use when converting the string value.</param>
     /// <returns>A binder for the optional value at the <paramref name="key" />.</returns>
-    let optValue key decoder : Binder<'config, 'a option> =
+    let optValue key decoder : Binder<'config, 'a option, _> =
         optSection key (readValue |> Binder.extend (decode decoder))
 
     /// <summary>Creates a <see cref="Binder" /> from a System.Type.TryParse style parsing function.</summary>
@@ -82,7 +82,7 @@ module Bind =
     /// </remarks>
     /// <param name="parser">The parsing function with which to create the <see cref="Binder" />.</param>
     /// <returns>A <see cref="Binder" />.</returns>
-    let tryParseable (parser: string -> bool * 'parsed) : Binder<string, 'parsed> =
+    let tryParseable (parser: string -> bool * 'parsed) : Binder<string, 'parsed, _> =
         Binder (fun value ->
             match parser value with
             | true, x -> Success x
@@ -111,7 +111,7 @@ module Bind =
 
     /// <summary>A <see cref="Binder" /> for <see cref="string" /> values.</summary>
     /// <remarks>Always succeeds.</remarks>
-    let string: Binder<string, string> = Binder.ask
+    let string: Binder<string, string, 'e> = Binder.ask
 
     /// <summary>A <see cref="Binder" /> for <see cref="System.UInt16" /> values.</summary>
     let uint16 = tryParseable UInt16.TryParse

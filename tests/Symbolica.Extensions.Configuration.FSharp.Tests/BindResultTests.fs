@@ -10,6 +10,7 @@ module Result =
         test <@ x |> BindResult.result = Success(x) @>
 
 module Apply =
+    type BindResult<'a> = BindResult<'a, string list>
     let (<*>) = BindResult.apply
 
     [<Property>]
@@ -25,25 +26,28 @@ module Apply =
 
     [<Property>]
     let ``should obey homomorphism law`` (f: string -> string) x =
-        test <@ Success(f) <*> Success(x) = Success(x |> f) @>
+        test <@ Success(f) <*> Success(x) = (Success(x |> f): BindResult<_>) @>
 
     [<Property>]
     let ``should obey interchange law`` (u: BindResult<string -> string>) x =
-        test <@ u <*> Success(x) = (Success(fun f -> x |> f) <*> u) @>
+        test <@ u <*> (Success(x): BindResult<_>) = ((Success(fun f -> x |> f): BindResult<_>) <*> u) @>
 
     [<Property>]
     let ``Failure(e1) apply Success(x) should be Failure(e1)`` e1 (x: int) =
-        test <@ Failure(e1) <*> Success(x) = Failure(e1) @>
+        test
+            <@ (Failure(e1): BindResult<_>)
+               <*> (Success(x): BindResult<_>) = Failure(e1) @>
 
     [<Property>]
     let ``Success(f) apply Failure(e2) should be Failure(e2)`` (f: int -> int) e2 =
-        test <@ Success(f) <*> Failure(e2) = Failure(e2) @>
+        test <@ (Success(f): BindResult<_>) <*> Failure(e2) = Failure(e2) @>
 
     [<Property>]
-    let ``Failure(e1) apply Failure(e2) should be Failure(e1 append e2)`` e1 e2 =
+    let ``Failure(e1) apply Failure(e2) should be Failure(e1 append e2)`` (e1: string list) (e2: string list) =
         test <@ Failure(e1) <*> Failure(e2) = Failure(e1 |> List.append <| e2) @>
 
 module Bind =
+    type BindResult<'a> = BindResult<'a, string>
     let (>>=) m f = BindResult.bind f m
 
     [<Property>]
@@ -62,15 +66,15 @@ module Bind =
 
 module DefaultWith =
     [<Property>]
-    let ``should obey identity law`` e =
+    let ``should obey identity law`` (e: string) =
         test <@ Failure(e) |> BindResult.defaultWith id = e @>
 
     [<Property>]
-    let ``Success(x) |> defaultWith f should be x`` (x: int) f =
+    let ``Success(x) |> defaultWith f should be x`` (x: int) (f: string -> int) =
         test <@ Success(x) |> BindResult.defaultWith f = x @>
 
     [<Property>]
-    let ``Failure(e) |> defaultWith f should be f e`` e (f: string list -> string) =
+    let ``Failure(e) |> defaultWith f should be f e`` e (f: string -> string) =
         test <@ Failure(e) |> BindResult.defaultWith f = (f e) @>
 
 module OfResult =
@@ -79,16 +83,30 @@ module OfResult =
         test <@ x |> Ok |> BindResult.ofResult = Success(x) @>
 
     [<Property>]
-    let ``Error(e) should be Failure(e)`` e =
+    let ``Error(e) should be Failure(e)`` (e: string) =
         test <@ e |> Error |> BindResult.ofResult = Failure(e) @>
 
 module Map =
-    [<Property>]
-    let ``should obey identity law`` (x: BindResult<int>) = test <@ x |> BindResult.map id = x @>
+    type BindResult<'a> = BindResult<'a, string>
 
     [<Property>]
-    let ``should obey associativity law`` x (f: bool -> int) (g: int -> string) =
-        test <@ x |> BindResult.map (f >> g) = (x |> BindResult.map f |> BindResult.map g) @>
+    let ``should obey identity law`` (m: BindResult<int>) = test <@ m |> BindResult.map id = m @>
+
+    [<Property>]
+    let ``should obey associativity law`` (m: BindResult<bool>) (f: bool -> int) (g: int -> string) =
+        test <@ m |> BindResult.map (f >> g) = (m |> BindResult.map f |> BindResult.map g) @>
+
+module MapFailure =
+    [<Property>]
+    let ``should obey identity law`` (m: BindResult<int, string>) =
+        test <@ m |> BindResult.mapFailure id = m @>
+
+    [<Property>]
+    let ``should obey associativity law`` (m: BindResult<string, bool>) (f: bool -> int) (g: int -> string) =
+        test
+            <@ m |> BindResult.mapFailure (f >> g) = (m
+                                                      |> BindResult.mapFailure f
+                                                      |> BindResult.mapFailure g) @>
 
 module TraverseOpt =
     [<Property>]
@@ -96,7 +114,7 @@ module TraverseOpt =
         test <@ Some(Success(x)) |> BindResult.traverseOpt id = Success(Some(x)) @>
 
     [<Property>]
-    let ``Some(Failure(e)) traverse id should be Failure(e)`` e =
+    let ``Some(Failure(e)) traverse id should be Failure(e)`` (e: string) =
         test <@ Some(Failure(e)) |> BindResult.traverseOpt id = Failure(e) @>
 
     [<Property>]
@@ -104,11 +122,15 @@ module TraverseOpt =
         test <@ None |> BindResult.traverseOpt id = Success(None) @>
 
 module SequenceOpt =
+    type BindResult<'a> = BindResult<'a, string>
+
     [<Property>]
     let ``should be equal to traverse id`` (opt: BindResult<string> option) =
         test <@ opt |> BindResult.sequenceOpt = (opt |> BindResult.traverseOpt id) @>
 
 module TraverseList =
+    type BindResult<'a> = BindResult<'a, string list>
+
     [<Property>]
     let ``[Success(x) * n] traverse id should be Success [x * n]`` (xs: int list) =
         test
@@ -143,23 +165,27 @@ module TraverseList =
                |> BindResult.traverseList id = Success [] @>
 
 module SequenceList =
+    type BindResult<'a> = BindResult<'a, string list>
+
     [<Property>]
     let ``should be equal to traverse id`` (list: BindResult<string> list) =
         test <@ list |> BindResult.sequenceList = (list |> BindResult.traverseList id) @>
 
 module Zip =
+    type BindResult<'a> = BindResult<'a, string list>
+
     [<Property>]
     let ```zip Success(a) Success(b) should be Success(a, b)`` (a: int) (b: string) =
-        test <@ BindResult.zip (Success(a)) (Success(b)) = Success(a, b) @>
+        test <@ BindResult.zip (Success(a): BindResult<_>) (Success(b): BindResult<_>) = Success(a, b) @>
 
     [<Property>]
     let ``zip Failure(e1) Success(b) should be Failure(e1)`` e1 (b: string) =
-        test <@ BindResult.zip (Failure(e1)) (Success(b)) = Failure(e1) @>
+        test <@ BindResult.zip (Failure(e1)) (Success(b): BindResult<_>) = Failure(e1) @>
 
     [<Property>]
-    let ```zip Success(a) Failure(e2) should be Failure(e2)`` (a: int) e2 =
-        test <@ BindResult.zip (Success(a)) (Failure(e2)) = Failure(e2) @>
+    let ```zip Success(a) Failure(e2) should be Failure(e2)`` (a: int) (e2: string list) =
+        test <@ BindResult.zip (Success(a): BindResult<_>) (Failure(e2)) = Failure(e2) @>
 
     [<Property>]
-    let ```zip Failure(e1) Failure(e2) should be Failure(e1 append e2)`` e1 e2 =
+    let ```zip Failure(e1) Failure(e2) should be Failure(e1 append e2)`` (e1: string list) (e2: string list) =
         test <@ BindResult.zip (Failure(e1)) (Failure(e2)) = Failure(e1 |> List.append <| e2) @>
