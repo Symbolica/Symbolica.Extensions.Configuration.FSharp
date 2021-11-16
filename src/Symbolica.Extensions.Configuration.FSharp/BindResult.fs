@@ -49,6 +49,12 @@ module BindResult =
         | Success x -> x
         | Failure e -> e |> f
 
+    /// <summary>Converts a <see cref="Result" /> to a <see cref="BindResult" />.</summary>
+    let ofResult =
+        function
+        | Ok x -> Success x
+        | Error e -> e |> Failure
+
     /// <summary>Maps the output of the <see cref="BindResult" />.</summary>
     /// <param name="f">The function used to map the output.</param>
     /// <returns>A <see cref="BindResult" /> whose output is mapped by the function <paramref name="f" />.</returns>

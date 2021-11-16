@@ -4,6 +4,11 @@ open FsCheck
 open FsCheck.Xunit
 open Swensen.Unquote
 
+module Result =
+    [<Property>]
+    let ``should create Success`` (x: int) =
+        test <@ x |> BindResult.result = Success(x) @>
+
 module Apply =
     let (<*>) = BindResult.apply
 
@@ -67,6 +72,15 @@ module DefaultWith =
     [<Property>]
     let ``Failure(e) |> defaultWith f should be f e`` e (f: string list -> string) =
         test <@ Failure(e) |> BindResult.defaultWith f = (f e) @>
+
+module OfResult =
+    [<Property>]
+    let ``Ok(x) should be Success(x)`` (x: int) =
+        test <@ x |> Ok |> BindResult.ofResult = Success(x) @>
+
+    [<Property>]
+    let ``Error(e) should be Failure(e)`` e =
+        test <@ e |> Error |> BindResult.ofResult = Failure(e) @>
 
 module Map =
     [<Property>]
