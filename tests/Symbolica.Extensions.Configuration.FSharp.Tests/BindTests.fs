@@ -8,13 +8,10 @@ open global.Xunit
 
 module Section =
     [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
-    let ``when section exists and binder succeeds should be Success section``
-        (ConfigurationPath path)
-        (ConfigurationKey key)
-        =
+    let ``when section exists and binder succeeds should be Success section`` path key =
         let subSection =
             { Children = Seq.empty
-              Path = ConfigurationPath.Combine(path, key)
+              Path = key
               Value = "Value" }
 
         let section =
@@ -22,14 +19,16 @@ module Section =
               Path = path
               Value = null }
 
-        test <@ Bind.section key Binder.ask |> Binder.eval section = Success(subSection :> IConfigurationSection) @>
+        test
+            <@ Bind.section (key |> ConfigPathSegment.value) Binder.ask
+               |> Binder.eval section = Success(subSection :> IConfigurationSection) @>
 
     [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
-    let ``when section exists and binder fails should be Failure`` (ConfigurationPath path) (ConfigurationKey key) =
+    let ``when section exists and binder fails should be Failure`` path key =
         let section =
             { Children =
                 [ { Children = Seq.empty
-                    Path = ConfigurationPath.Combine(path, key)
+                    Path = key
                     Value = "Value" } ]
               Path = path
               Value = null }
@@ -37,24 +36,21 @@ module Section =
         let error = [ "Key not found" ]
 
         test
-            <@ Bind.section key (error |> Binder.fail)
+            <@ Bind.section (key |> ConfigPathSegment.value) (error |> Binder.fail)
                |> Binder.eval section = Failure(error) @>
 
     [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
-    let ``when section does not exist should be Failure`` (ConfigurationPath path) (ConfigurationKey key) =
+    let ``when section does not exist should be Failure`` path key =
         test
-            <@ Bind.section key Binder.ask
-               |> Binder.eval (path |> SectionStub.Empty) = Failure[$"The key '{key}' does not exist at '{path}'."] @>
+            <@ Bind.section (key |> ConfigPathSegment.value) Binder.ask
+               |> Binder.eval (path |> SectionStub.Empty) = Failure[$"The key '{key |> ConfigPathSegment.value}' does not exist at '{path |> ConfigPathSegment.value}'."] @>
 
 module OptSection =
     [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
-    let ``when section exists and binder succeeds should be Success Some section``
-        (ConfigurationPath path)
-        (ConfigurationKey key)
-        =
+    let ``when section exists and binder succeeds should be Success Some section`` path key =
         let subSection =
             { Children = Seq.empty
-              Path = ConfigurationPath.Combine(path, key)
+              Path = key
               Value = "Value" }
 
         let section =
@@ -63,15 +59,15 @@ module OptSection =
               Value = null }
 
         test
-            <@ Bind.optSection key Binder.ask
+            <@ Bind.optSection (key |> ConfigPathSegment.value) Binder.ask
                |> Binder.eval section = Success(subSection :> IConfigurationSection |> Some) @>
 
     [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
-    let ``when section exists and binder fails should be Failure`` (ConfigurationPath path) (ConfigurationKey key) =
+    let ``when section exists and binder fails should be Failure`` path key =
         let section =
             { Children =
                 [ { Children = Seq.empty
-                    Path = ConfigurationPath.Combine(path, key)
+                    Path = key
                     Value = "Value" } ]
               Path = path
               Value = null }
@@ -79,125 +75,122 @@ module OptSection =
         let error = [ "Key not found" ]
 
         test
-            <@ Bind.optSection key (error |> Binder.fail)
+            <@ Bind.optSection (key |> ConfigPathSegment.value) (error |> Binder.fail)
                |> Binder.eval section = Failure(error) @>
 
     [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
-    let ``when section does not exist should be Success None`` (ConfigurationPath path) (ConfigurationKey key) =
+    let ``when section does not exist should be Success None`` path key =
         test
-            <@ Bind.optSection key Binder.ask
+            <@ Bind.optSection (key |> ConfigPathSegment.value) Binder.ask
                |> Binder.eval (path |> SectionStub.Empty) = Success(None) @>
 
 module Value =
     [<Property(Arbitrary = [| typeof<Arb.NotNullString>
                               typeof<ConfigurationArb> |])>]
-    let ``when value exists and is not null should be Success value``
-        (ConfigurationPath path)
-        (ConfigurationKey key)
-        x
-        =
+    let ``when value exists and is not null should be Success value`` path key x =
         let section =
             { Children =
                 [ { Children = Seq.empty
-                    Path = ConfigurationPath.Combine(path, key)
+                    Path = key
                     Value = x } ]
               Path = path
               Value = null }
 
-        test <@ Bind.value key Bind.string |> Binder.eval section = Success(x) @>
+        test
+            <@ Bind.value (key |> ConfigPathSegment.value) Bind.string
+               |> Binder.eval section = Success(x) @>
 
     [<Property(Arbitrary = [| typeof<Arb.NotNullString>
                               typeof<ConfigurationArb> |])>]
-    let ``when value does not exist should be Failure`` (ConfigurationPath path) (ConfigurationKey key) x =
+    let ``when value does not exist should be Failure`` path key x =
         let section =
             { Children =
                 [ { Children = Seq.empty
-                    Path = ConfigurationPath.Combine(path, key)
+                    Path = key
                     Value = x } ]
               Path = path
               Value = null }
 
-        let missingKey = $"notthe{key}"
+        let missingKey = $"notthe{key |> ConfigPathSegment.value}"
 
         test
             <@ Bind.value missingKey Bind.string
-               |> Binder.eval section = Failure([ $"The key '{missingKey}' does not exist at '{path}'." ]) @>
+               |> Binder.eval section = Failure(
+                [ $"The key '{missingKey}' does not exist at '{path |> ConfigPathSegment.value}'." ]
+            ) @>
 
     [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
-    let ``when value exists and is null should be Failure`` (ConfigurationPath path) (ConfigurationKey key) =
+    let ``when value exists and is null should be Failure`` path key =
         let section =
             { Children =
                 [ { Children = Seq.empty
-                    Path = ConfigurationPath.Combine(path, key)
+                    Path = key
                     Value = null } ]
               Path = path
               Value = null }
 
         test
-            <@ Bind.value key Bind.string |> Binder.eval section = Failure(
-                [ $"The key '{key}' does not exist at '{path}'." ]
+            <@ Bind.value (key |> ConfigPathSegment.value) Bind.string
+               |> Binder.eval section = Failure(
+                [ $"The key '{key |> ConfigPathSegment.value}' does not exist at '{path |> ConfigPathSegment.value}'." ]
             ) @>
 
     [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
-    let ``when value cannot be decoded should be Failure`` (ConfigurationPath path) (ConfigurationKey key) =
+    let ``when value cannot be decoded should be Failure`` path key =
         let section =
             { Children =
                 [ { Children = Seq.empty
-                    Path = ConfigurationPath.Combine(path, key)
+                    Path = key
                     Value = "string" } ]
               Path = path
               Value = null }
 
         test
-            <@ Bind.value key Bind.int |> Binder.eval section = Failure(
-                [ "Could not decode 'string' as type 'System.Int32'." ]
-            ) @>
+            <@ Bind.value (key |> ConfigPathSegment.value) Bind.int
+               |> Binder.eval section = Failure([ "Could not decode 'string' as type 'System.Int32'." ]) @>
 
     [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
-    let ``when section has children should be Failure`` (ConfigurationPath path) (ConfigurationKey key) =
+    let ``when section has children should be Failure`` path key =
         let section =
             { Children =
                 [ { Children =
                       [ { Children = Seq.empty
-                          Path = ConfigurationPath.Combine(path, key)
+                          Path = key
                           Value = "Value" } ]
-                    Path = ConfigurationPath.Combine(path, key)
+                    Path = key
                     Value = "Value" } ]
               Path = path
               Value = null }
 
         test
-            <@ Bind.value key Bind.string |> Binder.eval section = Failure(
-                [ $"Expected a simple value at '{ConfigurationPath.Combine(path, key)}' but found an object." ]
+            <@ Bind.value (key |> ConfigPathSegment.value) Bind.string
+               |> Binder.eval section = Failure(
+                [ $"Expected a simple value at '{key |> ConfigPathSegment.value}' but found an object." ]
             ) @>
 
 module OptValue =
     [<Property(Arbitrary = [| typeof<Arb.NotNullString>
                               typeof<ConfigurationArb> |])>]
-    let ``when value exists and is not null should be Success Some value``
-        (ConfigurationPath path)
-        (ConfigurationKey key)
-        x
-        =
+    let ``when value exists and is not null should be Success Some value`` path key x =
         let section =
             { Children =
                 [ { Children = Seq.empty
-                    Path = ConfigurationPath.Combine(path, key)
+                    Path = key
                     Value = x } ]
               Path = path
               Value = null }
 
         test
-            <@ Bind.optValue key Bind.string
+            <@ Bind.optValue (key |> ConfigPathSegment.value) Bind.string
                |> Binder.eval section = Success(Some(x)) @>
 
     [<Property(Arbitrary = [| typeof<Arb.NotNullString>
                               typeof<ConfigurationArb> |])>]
-    let ``when value does not exist should be Success None`` (ConfigurationPath path) (ConfigurationKey key) x =
+    let ``when value does not exist should be Success None`` path key x =
         let section =
             { Children =
                 [ { Children = Seq.empty
-                    Path = ConfigurationPath.Combine(path, key)
+                    Path = key
                     Value = x } ]
               Path = path
               Value = null }
@@ -209,51 +202,50 @@ module OptValue =
                |> Binder.eval section = Success(None) @>
 
     [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
-    let ``when value exists and is null should be Success None`` (ConfigurationPath path) (ConfigurationKey key) =
+    let ``when value exists and is null should be Success None`` path key =
         let section =
             { Children =
                 [ { Children = Seq.empty
-                    Path = ConfigurationPath.Combine(path, key)
+                    Path = key
                     Value = null } ]
               Path = path
               Value = null }
 
         test
-            <@ Bind.optValue key Bind.string
+            <@ Bind.optValue (key |> ConfigPathSegment.value) Bind.string
                |> Binder.eval section = Success(None) @>
 
     [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
-    let ``when value cannot be decoded should be Failure`` (ConfigurationPath path) (ConfigurationKey key) =
+    let ``when value cannot be decoded should be Failure`` path key =
         let section =
             { Children =
                 [ { Children = Seq.empty
-                    Path = ConfigurationPath.Combine(path, key)
+                    Path = key
                     Value = "string" } ]
               Path = path
               Value = null }
 
         test
-            <@ Bind.optValue key Bind.int |> Binder.eval section = Failure(
-                [ "Could not decode 'string' as type 'System.Int32'." ]
-            ) @>
+            <@ Bind.optValue (key |> ConfigPathSegment.value) Bind.int
+               |> Binder.eval section = Failure([ "Could not decode 'string' as type 'System.Int32'." ]) @>
 
     [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
-    let ``when section has children should be Failure`` (ConfigurationPath path) (ConfigurationKey key) =
+    let ``when section has children should be Failure`` path key =
         let section =
             { Children =
                 [ { Children =
                       [ { Children = Seq.empty
-                          Path = ConfigurationPath.Combine(path, key)
+                          Path = key
                           Value = "Value" } ]
-                    Path = ConfigurationPath.Combine(path, key)
+                    Path = key
                     Value = "Value" } ]
               Path = path
               Value = null }
 
         test
-            <@ Bind.optValue key Bind.string
+            <@ Bind.optValue (key |> ConfigPathSegment.value) Bind.string
                |> Binder.eval section = Failure(
-                [ $"Expected a simple value at '{ConfigurationPath.Combine(path, key)}' but found an object." ]
+                [ $"Expected a simple value at '{key |> ConfigPathSegment.value}' but found an object." ]
             ) @>
 
 module Bool =
@@ -263,8 +255,7 @@ module Bool =
 
     [<Fact>]
     let ``should be Failure if string can not be converted to bool`` =
-        test
-            <@ "string" |> Binder.run Bind.bool = Failure([ "Could not decode 'string' as type 'System.Boolean'." ]) @>
+        test <@ "string" |> Binder.run Bind.bool = Failure([ "Could not decode 'string' as type 'System.Boolean'." ]) @>
 
 module Char =
     [<Property>]
@@ -301,8 +292,7 @@ module Float =
 
     [<Fact>]
     let ``should be Failure if string can not be converted to float`` =
-        test
-            <@ "string" |> Binder.run Bind.float = Failure([ "Could not decode 'string' as type 'System.Double'." ]) @>
+        test <@ "string" |> Binder.run Bind.float = Failure([ "Could not decode 'string' as type 'System.Double'." ]) @>
 
 module Int16 =
     [<Property>]

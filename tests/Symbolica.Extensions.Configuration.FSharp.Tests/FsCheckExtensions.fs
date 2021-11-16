@@ -8,28 +8,18 @@ module Arb =
         static member strings() =
             Arb.Default.String() |> Arb.filter ((<>) null)
 
-type ConfigurationKey =
-    | ConfigurationKey of string
-    static member Gen: Gen<ConfigurationKey> =
+type ConfigPathSegment =
+    | ConfigPathSegment of string
+    static member Gen: Gen<ConfigPathSegment> =
         Arb.NotNullString.strings ()
         |> Arb.toGen
         |> Gen.where (fun s -> not (s.Contains(ConfigurationPath.KeyDelimiter)))
-        |> Gen.map ConfigurationKey
+        |> Gen.map ConfigPathSegment
 
-    static member Value(ConfigurationKey k) = k
-
-type ConfigurationPath =
-    | ConfigurationPath of string
-    static member Gen: Gen<ConfigurationPath> =
-        ConfigurationKey.Gen
-        |> Gen.listOf
-        |> Gen.map (fun keys ->
-            System.String.Join(ConfigurationPath.KeyDelimiter, keys |> Seq.map ConfigurationKey.Value))
-        |> Gen.map ConfigurationPath
+module ConfigPathSegment =
+    let empty = ConfigPathSegment System.String.Empty
+    let value (ConfigPathSegment x) = x
 
 type ConfigurationArb =
-    static member ConfigurationKey: Arbitrary<ConfigurationKey> =
-        ConfigurationKey.Gen |> Arb.fromGen
-
-    static member ConfigurationPath: Arbitrary<ConfigurationPath> =
-        ConfigurationPath.Gen |> Arb.fromGen
+    static member ConfigPathSegment: Arbitrary<ConfigPathSegment> =
+        ConfigPathSegment.Gen |> Arb.fromGen
