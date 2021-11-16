@@ -27,8 +27,6 @@ module Ask =
 module Apply =
     type Binder<'a> = Binder<string, 'a, string list>
 
-    let (<*>) = Binder.apply
-
     [<Property>]
     let ``should obey identity law`` (w: Binder<int>) config =
         let id: Binder<_> = Binder.result id
@@ -80,7 +78,6 @@ module Apply =
 
 module Bind =
     type Binder<'a> = Binder<string, 'a, string>
-    let (>>=) m f = Binder.bind f m
 
     [<Property>]
     let ``should obey left identity`` x (f: int -> Binder<int>) config =
@@ -91,7 +88,7 @@ module Bind =
         test <@ m >>= Binder.result |> Binder.eval config = (m |> Binder.eval config) @>
 
     [<Property>]
-    let ``should obey associativity`` m (f: bool -> Binder<int>) (g: int -> Binder<string>) config =
+    let ``should obey associativity`` (m: Binder<_>) (f: bool -> Binder<int>) (g: int -> Binder<string>) config =
         test
             <@ (m >>= f) >>= g |> Binder.eval config = (m
                                                         >>= (fun x -> x |> f >>= g)
@@ -103,6 +100,23 @@ module Bind =
             <@ Binder.ofBindResult (Failure(e))
                >>= f
                |> Binder.eval config = Failure(e) @>
+
+module ContraMap =
+    type Binder<'config, 'a> = Binder<'config, 'a, string>
+
+    [<Property>]
+    let ``should obey identity law`` (m: Binder<string, int>) config =
+        test <@ m |> Binder.contramap id |> Binder.eval config = (m |> Binder.eval config) @>
+
+    [<Property>]
+    let ``should obey associativity law`` (m: Binder<bool, bool>) (f: string -> int) (g: int -> bool) config =
+        test
+            <@ m
+               |> Binder.contramap (f >> g)
+               |> Binder.eval config = (m
+                                        |> Binder.contramap g
+                                        |> Binder.contramap f
+                                        |> Binder.eval config) @>
 
 module Map =
     type Binder<'a> = Binder<string, 'a, string>
