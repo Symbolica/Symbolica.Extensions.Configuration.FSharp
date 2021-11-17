@@ -18,6 +18,7 @@
     <Compile Include="FsCheckExtensions.fs" />
     <Compile Include="BindResultTests.fs" />
     <Compile Include="BinderTests.fs" />
+    <Compile Include="ErrorTests.fs" />
     <Compile Include="SectionStub.fs" />
     <Compile Include="BindTests.fs" />
     <Compile Include="BuilderTests.fs" />

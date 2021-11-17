@@ -56,7 +56,7 @@ module Binder =
     /// <param name="f">The function to which the value will be applied.</param>
     /// <param name="a">The value to be applied to the function.</param>
     /// <returns>A <see cref="Binder" /> containing the result of applying the value to the function.</returns>
-    let apply (f: Binder<'config, 'a -> 'b, _>) (a: Binder<'config, 'a, _>) : Binder<'config, 'b, _> =
+    let apply (f: Binder<'config, 'a -> 'b, 'e>) (a: Binder<'config, 'a, 'e>) : Binder<'config, 'b, 'e> =
         Binder (fun config ->
             a
             |> eval config
@@ -111,7 +111,7 @@ module Binder =
     /// <summary>
     /// Runs the binder generating function <paramref name="f"/> on each element of the list creating a binder of a list.
     /// </summary>
-    let rec traverseList (f: 'a -> Binder<'config, 'b, _>) (list: 'a list) : Binder<'config, 'b list, _> =
+    let rec traverseList (f: 'a -> Binder<'config, 'b, 'e>) (list: 'a list) : Binder<'config, 'b list, 'e> =
         let cons head tail = head :: tail
         let (<!>) = map
         let (<*>) = apply
@@ -120,7 +120,7 @@ module Binder =
     /// <summary>
     /// Turns a <see cref="List" /> of <see cref="Binder" /> into a <see cref="Binder" /> of <see cref="List" />.
     /// </summary>
-    let sequenceList (m: Binder<'config, 'a, _> list) : Binder<'config, 'a list, _> = m |> traverseList id
+    let sequenceList (m: Binder<'config, 'a, 'e> list) : Binder<'config, 'a list, 'e> = m |> traverseList id
 
     /// <summary>
     /// Extends a <see cref="Binder" /> by feeding its output to the input of a subsequent binder.
@@ -171,7 +171,7 @@ module Binder =
     /// </remarks>
     /// <param name="x">The left hand side of the zip.</param>
     /// <param name="y">The right hand side of the zip.</param>
-    let zip x y : Binder<'config, 'a * 'b, _> =
+    let zip x y : Binder<'config, 'a * 'b, 'e> =
         Binder(fun config -> BindResult.zip (x |> eval config) (y |> eval config))
 
 type Binder<'config, 'a, 'e> with

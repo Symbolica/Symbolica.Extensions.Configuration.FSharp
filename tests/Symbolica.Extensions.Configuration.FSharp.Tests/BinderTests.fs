@@ -25,7 +25,8 @@ module Ask =
         test <@ Binder.ask |> Binder.eval config = Success(config) @>
 
 module Apply =
-    type Binder<'a> = Binder<string, 'a, string list>
+    type ApErrors = ApplicativeErrors<string>
+    type Binder<'a> = Binder<string, 'a, ApErrors>
 
     [<Property>]
     let ``should obey identity law`` (w: Binder<int>) config =
@@ -52,29 +53,25 @@ module Apply =
                                         |> Binder.eval config) @>
 
     [<Property>]
-    let ``Failure(e1) apply Success(x) should be Failure(e1)`` (e1: string list) (x: int) config =
+    let ``Failure(e1) apply Success(x) should be Failure(e1)`` (e1: ApErrors) (x: int) config =
         test
             <@ Binder.ofBindResult (Failure(e1))
                <*> (Binder.result x: Binder<_>)
                |> Binder.eval config = Failure(e1) @>
 
     [<Property>]
-    let ``Success(f) apply Failure(e2) should be Failure(e2)`` (f: int -> int) (e2: string list) config =
+    let ``Success(f) apply Failure(e2) should be Failure(e2)`` (f: int -> int) (e2: ApErrors) config =
         test
             <@ (Binder.result f: Binder<_>)
                <*> Binder.ofBindResult (Failure(e2))
                |> Binder.eval config = Failure(e2) @>
 
     [<Property>]
-    let ``Failure(e1) apply Failure(e2) should be Failure(e1 append e2)``
-        (e1: string list)
-        (e2: string list)
-        (config: string)
-        =
+    let ``Failure(e1) apply Failure(e2) should be Failure(e1 +& e2)`` (e1: ApErrors) (e2: ApErrors) (config: string) =
         test
             <@ Binder.ofBindResult (Failure(e1))
                <*> Binder.ofBindResult (Failure(e2))
-               |> Binder.eval config = Failure(e1 |> List.append <| e2) @>
+               |> Binder.eval config = Failure(e1 +& e2) @>
 
 module Bind =
     type Binder<'a> = Binder<string, 'a, string>
@@ -151,8 +148,6 @@ module MapFailure =
                                         |> Binder.eval config) @>
 
 module TraverseOpt =
-    type Binder<'a> = Binder<string, 'a, string>
-
     [<Property>]
     let ``Some(Success(x)) traverse id should be Success(Some(x))`` (x: int) (config: string) =
         test
@@ -161,7 +156,7 @@ module TraverseOpt =
                |> Binder.eval config = Success(Some(x)) @>
 
     [<Property>]
-    let ``Some(Failure(e)) traverse id should be Failure(e)`` (e: string) (config: string) =
+    let ``Some(Failure(e)) traverse id should be Failure(e)`` (e: ApplicativeErrors<Error>) (config: string) =
         test
             <@ Some(Failure(e) |> Binder.ofBindResult)
                |> Binder.traverseOpt id
@@ -175,7 +170,7 @@ module TraverseOpt =
                |> Binder.eval config = Success(None) @>
 
 module SequenceOpt =
-    type Binder<'a> = Binder<string, 'a, string>
+    type Binder<'a> = Binder<string, 'a, ApplicativeErrors<Error>>
 
     [<Property>]
     let ``should be equal to traverse id`` (opt: Binder<string> option) config =
@@ -183,8 +178,8 @@ module SequenceOpt =
             <@ opt |> Binder.sequenceOpt |> Binder.eval config = (opt |> Binder.traverseOpt id |> Binder.eval config) @>
 
 module TraverseList =
-    type BindResult<'a> = BindResult<'a, string list>
-    type Binder<'a> = Binder<string, 'a, string list>
+    type BindResult<'a> = BindResult<'a, ApplicativeErrors<Error>>
+    type Binder<'a> = Binder<string, 'a, ApplicativeErrors<Error>>
 
     [<Property>]
     let ``[Success(x) * n] traverse id should be Success [x * n]`` (xs: int list) (config: string) =
@@ -215,7 +210,7 @@ module TraverseList =
                         | Failure e -> fun es -> e :: es)
                         list
                         []
-                    |> List.reduce (List.append)
+                    |> List.reduce (+&)
                 ) @>)
 
     [<Property>]
@@ -226,7 +221,7 @@ module TraverseList =
                |> Binder.eval config = Success [] @>
 
 module SequenceList =
-    type Binder<'a> = Binder<string, 'a, string list>
+    type Binder<'a> = Binder<string, 'a, ApplicativeErrors<Error>>
 
     [<Property>]
     let ``should be equal to traverse id`` (list: Binder<string> list) config =
@@ -283,7 +278,8 @@ module ExtendOpt =
                |> Binder.eval config = Failure(e) @>
 
 module Zip =
-    type Binder<'a> = Binder<string, 'a, string list>
+    type ApErrors = ApplicativeErrors<string>
+    type Binder<'a> = Binder<string, 'a, ApErrors>
 
     [<Property>]
     let ```zip Success(a) Success(b) should be Success(a, b)`` (a: int) (b: string) config =
@@ -292,23 +288,23 @@ module Zip =
                |> Binder.eval config = Success(a, b) @>
 
     [<Property>]
-    let ``zip Failure(e1) Success(b) should be Failure(e1)`` (e1: string list) (b: string) config =
+    let ``zip Failure(e1) Success(b) should be Failure(e1)`` (e1: ApErrors) (b: string) config =
         test
             <@ Binder.zip (Binder.ofBindResult (Failure(e1))) (Binder.result b: Binder<_>)
                |> Binder.eval config = Failure(e1) @>
 
     [<Property>]
-    let ```zip Success(a) Failure(e2) should be Failure(e2)`` (a: int) (e2: string list) config =
+    let ```zip Success(a) Failure(e2) should be Failure(e2)`` (a: int) (e2: ApErrors) config =
         test
             <@ Binder.zip (Binder.result a: Binder<_>) (Binder.ofBindResult (Failure(e2)))
                |> Binder.eval config = Failure(e2) @>
 
     [<Property>]
-    let ```zip Failure(e1) Failure(e2) should be Failure(e1 append e2)``
-        (e1: string list)
-        (e2: string list)
+    let ```zip Failure(e1) Failure(e2) should be Failure(e1 Error.and' e2)``
+        (e1: ApErrors)
+        (e2: ApErrors)
         (config: string)
         =
         test
             <@ Binder.zip (Binder.ofBindResult (Failure(e1))) (Binder.ofBindResult (Failure(e2)))
-               |> Binder.eval config = Failure(e1 |> List.append <| e2) @>
+               |> Binder.eval config = Failure(e1 +& e2) @>

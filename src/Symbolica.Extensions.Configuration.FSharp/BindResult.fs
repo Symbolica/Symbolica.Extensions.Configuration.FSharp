@@ -21,11 +21,11 @@ module BindResult =
     /// <param name="f">The function to which the value will be applied.</param>
     /// <param name="a">The value to be applied to the function.</param>
     /// <returns>A <see cref="BindResult" /> containing the result of applying the value to the function.</returns>
-    let apply (f: BindResult<'a -> 'b, _>) (a: BindResult<'a, _>) : BindResult<'b, _> =
+    let apply (f: BindResult<'a -> 'b, 'e1>) (a: BindResult<'a, 'e2>) : BindResult<'b, 'e> =
         match f, a with
-        | Failure e1, Failure e2 -> Failure(List.append e1 e2)
-        | Failure e1, Success _ -> e1 |> Failure
-        | Success _, Failure e2 -> e2 |> Failure
+        | Failure e1, Failure e2 -> e1 |> ApSemiGroup.append e2 |> Failure
+        | Failure e1, Success _ -> e1 |> ApSemiGroup.from |> Failure
+        | Success _, Failure e2 -> e2 |> ApSemiGroup.from |> Failure
         | Success f, Success a -> a |> f |> Success
 
     /// <summary>Monadic bind for a <see cref="BindResult" />.</summary>
@@ -41,13 +41,24 @@ module BindResult =
         | Failure e -> e |> Failure
 
     /// <summary>
-    /// Extracts the value from <see cref="BindResult" /> applying the compensation function <paramref name="f" />
+    /// Extracts the value from the <see cref="BindResult" /> applying the compensation function <paramref name="f" />
     /// in the <c>Failure</c> case.
     /// </summary>
     let defaultWith f =
         function
         | Success x -> x
         | Failure e -> e |> f
+
+    /// <summary>
+    /// Extracts the value from the <see cref="BindResult" /> but throws with a pretty printed error message
+    /// in the <c>Failure</c> case.
+    /// </summary>
+    let getOrFail =
+        function
+        | Success x -> x
+        | Failure e ->
+            $"The following config errors need to be fixed:\n{e.ToString()}"
+            |> failwith
 
     /// <summary>Converts a <see cref="Result" /> to a <see cref="BindResult" />.</summary>
     let ofResult =
@@ -87,7 +98,7 @@ module BindResult =
     /// <summary>
     /// Runs the result generating function <paramref name="f"/> on each element of the list creating a result of a list.
     /// </summary>
-    let rec traverseList (f: 'a -> BindResult<'b, _>) (list: 'a list) : BindResult<'b list, _> =
+    let rec traverseList (f: 'a -> BindResult<'b, 'e>) (list: 'a list) : BindResult<'b list, 'e> =
         let cons head tail = head :: tail
         let (<!>) = map
         let (<*>) = apply
@@ -96,7 +107,7 @@ module BindResult =
     /// <summary>
     /// Turns a <see cref="List" /> of <see cref="BindResult" /> into a <see cref="BindResult" /> of <see cref="List" />.
     /// </summary>
-    let sequenceList (m: BindResult<'a, _> list) : BindResult<'a list, _> = m |> traverseList id
+    let sequenceList (m: BindResult<'a, 'e> list) : BindResult<'a list, 'e> = m |> traverseList id
 
     /// <summary>Combines two <see cref="BindResult" /> instances.</summary>
     /// <remarks>
@@ -106,11 +117,11 @@ module BindResult =
     /// </remarks>
     /// <param name="x">The left hand side of the zip.</param>
     /// <param name="y">The right hand side of the zip.</param>
-    let zip (x: BindResult<'a, _>) (y: BindResult<'b, _>) : BindResult<'a * 'b, _> =
+    let zip (x: BindResult<'a, 'e1>) (y: BindResult<'b, 'e2>) : BindResult<'a * 'b, 'e> =
         match x, y with
-        | Failure e1, Failure e2 -> Failure(List.append e1 e2)
-        | Failure e1, Success _ -> e1 |> Failure
-        | Success _, Failure e2 -> e2 |> Failure
+        | Failure e1, Failure e2 -> e1 |> ApSemiGroup.append e2 |> Failure
+        | Failure e1, Success _ -> e1 |> ApSemiGroup.from |> Failure
+        | Success _, Failure e2 -> e2 |> ApSemiGroup.from |> Failure
         | Success a, Success b -> Success(a, b)
 
 type BindResult<'a, 'e> with
