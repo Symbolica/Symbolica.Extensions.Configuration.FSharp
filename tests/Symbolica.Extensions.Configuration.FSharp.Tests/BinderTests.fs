@@ -73,6 +73,34 @@ module Apply =
                <*> Binder.ofBindResult (Failure(e2))
                |> Binder.eval config = Failure(e1 +& e2) @>
 
+module Alt =
+    type AltErrors = AltErrors<Error>
+    type Binder<'a> = Binder<string, 'a, Error>
+
+    [<Property>]
+    let ``should obey associativity law`` (u: Binder<int>) (v: Binder<_>) (w: Binder<_>) config =
+        test <@ u <|> (v <|> w) |> Binder.eval config = (((u <|> v) <|> w) |> Binder.eval config) @>
+
+    [<Property>]
+    let ``Success(x) <|> u should be Success(x)`` (x: int) (u: Binder<_>) config =
+        test
+            <@ Binder.ofBindResult (Success(x)) <|> u
+               |> Binder.eval config = Success(x) @>
+
+    [<Property>]
+    let ``Failure(x) <|> Success(y) should be Success(y)`` (x: int) y (config: string) =
+        test
+            <@ Binder.ofBindResult (Success(x))
+               <|> Binder.ofBindResult (Success(y))
+               |> Binder.eval config = Success(x) @>
+
+    [<Property>]
+    let ``Failure(e1) <|> Failure(e2) should be Failure(e1 +| e2)`` (e1: Error) (e2: Error) (config: string) =
+        test
+            <@ Binder.ofBindResult (Failure(e1))
+               <|> Binder.ofBindResult (Failure(e2))
+               |> Binder.eval config = Failure(e1 +| e2) @>
+
 module Bind =
     type Binder<'a> = Binder<string, 'a, string>
 

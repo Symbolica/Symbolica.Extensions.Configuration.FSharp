@@ -28,6 +28,27 @@ module BindResult =
         | Success _, Failure e2 -> e2 |> ApSemiGroup.from |> Failure
         | Success f, Success a -> a |> f |> Success
 
+    /// <summary>
+    /// Chooses the first <see cref="BindResult" /> that is <c>Success</c> between the two alternatives <paramref name="x" /> and <paramref name="y" />.
+    /// </summary>
+    /// <remarks>
+    /// If each <see cref="BindResult" /> is <c>Failure</c> then the errors are accumulated.
+    /// The error type must implement the <see cref="IAltSemiGroup" /> interface.
+    /// </remarks>
+    /// <param name="x">The first <see cref="BindResult" /> to try.</param>
+    /// <param name="y">
+    /// The alternative <see cref="BindResult" /> to try if <paramref name="x" /> is <c>Failure</c>.
+    /// </param>
+    /// <returns>
+    /// The first <see cref="BindResult" /> that is <c>Success</c> or a new <see cref="BindResult" /> of <c>Failure</c> containing both errors.
+    /// </returns>
+    let alt (x: BindResult<_, 'e1>) (y: BindResult<_, 'e2>) : BindResult<_, 'e> =
+        match x, y with
+        | Failure e1, Failure e2 -> e1 |> AltSemiGroup.append e2 |> Failure
+        | Failure _, Success b -> Success b
+        | Success a, Failure _ -> Success a
+        | Success a, Success _ -> Success a
+
     /// <summary>Monadic bind for a <see cref="BindResult" />.</summary>
     /// <remarks>
     /// If the input <see cref="BindResult" /> is <c>Success</c> then the function <paramref name="f" /> will be evaluated
@@ -132,6 +153,10 @@ type BindResult<'a, 'e> with
     /// <summary>The apply operator for a <see cref="BindResult" />.</summary>
     /// <seealso cref="BindResult.apply" />
     static member (<*>)(f, a) = a |> BindResult.apply f
+
+    /// <summary>The alt operator for a <see cref="BindResult" />.</summary>
+    /// <seealso cref="BindResult.alt" />
+    static member (<|>)(x, y) = BindResult.alt x y
 
     /// <summary>The bind operator for a <see cref="BindResult" />.</summary>
     /// <seealso cref="BindResult.bind" />
