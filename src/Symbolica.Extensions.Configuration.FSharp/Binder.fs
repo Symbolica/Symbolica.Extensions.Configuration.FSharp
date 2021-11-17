@@ -62,6 +62,31 @@ module Binder =
             |> eval config
             |> BindResult.apply (f |> eval config))
 
+    /// <summary>
+    /// Chooses the first <see cref="Binder" /> that evaluates to <c>Success</c> between the two alternatives <paramref name="x" /> and <paramref name="y" />.
+    /// </summary>
+    /// <remarks>
+    /// If each <see cref="Binder" /> produces <c>Failure</c> then the errors are accumulated.
+    /// The error type must implement the <see cref="IAltSemiGroup" /> interface.
+    /// <paramref name="y" /> is only evaluated in the case when <paramref name="x" /> fails.
+    /// </remarks>
+    /// <param name="x">The first <see cref="Binder" /> to try.</param>
+    /// <param name="y">
+    /// The alternative <see cref="Binder" /> to try if <paramref name="x" /> evaluates to <c>Failure</c>.
+    /// </param>
+    /// <returns>
+    /// The first <see cref="Binder" /> that evaluates to <c>Success</c> or a new <see cref="Binder" />
+    /// which evaluates to a <c>Failure</c> containing both errors.
+    /// </returns>
+    let alt (x: Binder<_, _, 'e1>) (y: Binder<_, _, 'e2>) : Binder<_, _, 'e3> =
+        Binder (fun config ->
+            match x |> eval config with
+            | Success a -> Success a
+            | Failure e1 ->
+                match y |> eval config with
+                | Success a -> Success a
+                | Failure e2 -> e1 |> AltSemiGroup.append e2 |> Failure)
+
     /// <summary>Monadic bind for a <see cref="Binder" />.</summary>
     /// <remarks>
     /// If <paramref name="m" /> evaluates to <c>Success</c> then the function <paramref name="f" /> will be evaluated
@@ -182,6 +207,10 @@ type Binder<'config, 'a, 'e> with
     /// <summary>The apply operator for a <see cref="Binder" />.</summary>
     /// <seealso cref="Binder.apply" />
     static member (<*>)(f, a) = a |> Binder.apply f
+
+    /// <summary>The alt operator for a <see cref="Binder" />.</summary>
+    /// <seealso cref="Binder.alt" />
+    static member (<|>)(x, y) = Binder.alt x y
 
     /// <summary>The bind operator for a <see cref="Binder" />.</summary>
     /// <seealso cref="Binder.bind" />

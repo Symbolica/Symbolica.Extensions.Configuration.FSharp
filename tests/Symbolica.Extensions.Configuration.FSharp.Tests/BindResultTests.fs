@@ -46,6 +46,26 @@ module Apply =
     let ``Failure(e1) apply Failure(e2) should be Failure(e1 +& e2)`` (e1: ApErrors) (e2: ApErrors) =
         test <@ Failure(e1) <*> Failure(e2) = Failure(e1 +& e2) @>
 
+module Alt =
+    type AltErrors = AltErrors<Error>
+    type BindResult<'a> = BindResult<'a, Error>
+
+    [<Property>]
+    let ``should obey associativity law`` (u: BindResult<int>) (v: BindResult<_>) (w: BindResult<_>) =
+        test <@ u <|> (v <|> w) = ((u <|> v) <|> w) @>
+
+    [<Property>]
+    let ``Success(x) <|> u should be Success(x)`` (x: int) (u: BindResult<_>) =
+        test <@ Success(x) <|> u = Success(x) @>
+
+    [<Property>]
+    let ``Failure(x) <|> Success(y) should be Success(y)`` (x: int) y =
+        test <@ Success(x) <|> Success(y) = Success(x) @>
+
+    [<Property>]
+    let ``Failure(e1) <|> Failure(e2) should be Failure(e1 +| e2)`` (e1: Error) (e2: Error) =
+        test <@ Failure(e1) <|> Failure(e2) = Failure(e1 +| e2) @>
+
 module Bind =
     type BindResult<'a> = BindResult<'a, string>
 
