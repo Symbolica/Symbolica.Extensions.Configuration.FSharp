@@ -1,6 +1,8 @@
 namespace Symbolica.Extensions.Configuration.FSharp
 
 open System
+open System.Collections.Generic
+open Microsoft.Extensions.Configuration
 
 type Bind() =
     member _.Bind(x: Binder<_, _, _>, f) = x |> Binder.bind f
@@ -52,6 +54,12 @@ module Bind =
             decoder
             |> Binder.eval value
             |> BindResult.mapFailure (fun error -> Error.ValueError(value, error)))
+
+    /// <summary>Binds the key of this config section with the <paramref name="decoder" />.</summary>
+    /// <param name="decoder">The binder to use when converting the string key.</param>
+    /// <returns>A binder for the key at the current config section.</returns>
+    let key decoder : Binder<'config, 'a, Error> =
+        Config.key |> Binder.extend (decode decoder)
 
     /// <summary>Binds the value of this config section with the <paramref name="decoder" />.</summary>
     /// <param name="decoder">The binder to use when converting the string value.</param>
@@ -121,6 +129,61 @@ module Bind =
     let oneValueOf binders =
         binders
         |> Binder.mapFailure (Errors.OneOf >> ValueError.Many)
+
+    /// <summary>
+    /// Binds an <see cref="IConfigurationSection" /> as a <see cref="KeyValuePair" /> by applying the
+    /// <paramref name="keyBinder" /> to the key and the <paramref name="valueBinder" /> to the value.
+    /// </summary>
+    /// <param name="keyBinder">
+    /// The <see cref="Binder" /> to apply to the key of this section in order to convert it to the key type.
+    /// </param>
+    /// <param name="valueBinder">
+    /// The <see cref="Binder" /> to apply to this section in order to convert it to the key type.
+    /// Note this can be either a simple value binder or a binder for a more complex type that spans
+    /// multiple child sections.
+    /// </param>
+    let keyValuePair
+        (keyBinder: Binder<_, 'key, ValueError>)
+        (valueBinder: Binder<IConfigurationSection, 'value, Error>)
+        : Binder<_, KeyValuePair<'key, 'value>, Error> =
+        bind {
+            let! key = key keyBinder
+            and! value = Binder.ask |> Binder.extend valueBinder
+            return KeyValuePair(key, value)
+        }
+
+    /// <summary>
+    /// Binds an <see cref="IConfigurationSection" /> as an <see cref="IDictionary" /> by applying the
+    /// <paramref name="keyBinder" /> to the key and the <paramref name="valueBinder" /> to the value
+    /// of each child section.
+    /// </summary>
+    /// <param name="keyBinder">
+    /// The <see cref="Binder" /> to apply to the key of each child section in order to convert it to the key type.
+    /// </param>
+    /// <param name="valueBinder">
+    /// The <see cref="Binder" /> to apply to each child section in order to convert it to the key type.
+    /// Note this can be either a simple value binder or a binder for a more complex type that spans
+    /// multiple child sections.
+    /// </param>
+    let dict
+        (keyBinder: Binder<string, 'key, ValueError>)
+        (valueBinder: Binder<IConfigurationSection, 'value, Error>)
+        : Binder<'config, IDictionary<'key, 'value>, Error> =
+        Config.children
+        |> Binder.map List.ofSeq
+        |> Binder.bind (
+            Binder.traverseList (
+                Config.key
+                |> Binder.bind (fun key ->
+                    keyValuePair keyBinder valueBinder
+                    |> Binder.mapFailure (fun e -> Error.SectionError(key, e)))
+                |> Binder.mapFailure ApplicativeErrors.single
+                |> Binder.run
+                >> Binder.ofBindResult
+            )
+        )
+        |> Binder.mapFailure (Errors.AllOf >> Error.Many)
+        |> Binder.map (fun x -> Dictionary(x) :> IDictionary<'key, 'value>)
 
     /// <summary>Creates a <see cref="Binder" /> from a System.Type.TryParse style parsing function.</summary>
     /// <remarks>
