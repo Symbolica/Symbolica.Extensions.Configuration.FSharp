@@ -325,6 +325,50 @@ module AllOf =
                      )
                  ) @>)
 
+module AnyOf =
+    [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
+    let ``should return Success if any binders succeed`` path key1 key2 key3 =
+        [ key1; key2; key3 ]
+        |> List.distinct
+        |> List.length = 3
+        ==> lazy
+            (let section =
+                { Children =
+                    [ { Children = Seq.empty
+                        Path = key1
+                        Value = "1" }
+                      { Children = Seq.empty
+                        Path = key3
+                        Value = "3" } ]
+                  Path = path
+                  Value = null }
+
+             test
+                 <@ [ key2; key3; key1 ]
+                    |> List.map (fun k -> Bind.value (k |> ConfigPathSegment.value) Bind.int)
+                    |> Bind.anyOf
+                    |> Binder.eval section = Success([ 3; 1 ]) @>)
+
+    [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
+    let ``should return Success of empty list if all binders fail`` path key1 key2 key3 =
+        [ key1; key2; key3 ]
+        |> List.distinct
+        |> List.length = 3
+        ==> lazy
+            (let section =
+                { Children =
+                    [ { Children = Seq.empty
+                        Path = key2
+                        Value = "2" } ]
+                  Path = path
+                  Value = null }
+
+             test
+                 <@ [ key3; key1 ]
+                    |> List.map (fun k -> Bind.value (k |> ConfigPathSegment.value) Bind.int)
+                    |> Bind.anyOf
+                    |> Binder.eval section = Success([]) @>)
+
 module Bool =
     [<Property>]
     let ``should be Success value if can be converted to bool`` value =
