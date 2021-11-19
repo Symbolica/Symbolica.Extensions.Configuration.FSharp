@@ -104,6 +104,23 @@ module Bind =
         |> Binder.traverseList (Binder.mapFailure ApplicativeErrors.single)
         |> Binder.mapFailure Errors.AllOf
 
+    /// <summary>
+    /// Creates a new <see cref="Binder" /> that produces a list of only the <c>Success</c> results from evaluating all of the
+    /// <paramref name="binders" /> with the same configuration.
+    /// </summary>
+    /// <remarks>
+    /// This new <see cref="Binder" /> will never evaluate to a <c>Failure</c>.
+    /// If all fail then it will evaluate to a <c>Success []</c>.
+    /// </remarks>
+    let anyOf binders =
+        Binder (fun config ->
+            let folder head tail =
+                match head |> Binder.eval config with
+                | Success x -> x :: tail
+                | Failure _ -> tail
+
+            List.foldBack folder binders [] |> Success)
+
     /// <summary>Creates a <see cref="Binder" /> from a System.Type.TryParse style parsing function.</summary>
     /// <remarks>
     /// Useful for creating a parser for a primitive type for which a <c>TryParse</c> function already exists.
