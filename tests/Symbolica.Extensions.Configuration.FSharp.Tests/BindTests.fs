@@ -248,6 +248,83 @@ module OptValue =
             <@ Bind.optValue (key |> ConfigPathSegment.value) Bind.string
                |> Binder.eval section = Failure(Error.notAValueNode (key |> ConfigPathSegment.value)) @>
 
+module AllOf =
+    [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
+    let ``should return Success if all binders succeed`` path key1 key2 key3 =
+        [ key1; key2; key3 ]
+        |> List.distinct
+        |> List.length = 3
+        ==> lazy
+            (let section =
+                { Children =
+                    [ { Children = Seq.empty
+                        Path = key1
+                        Value = "1" }
+                      { Children = Seq.empty
+                        Path = key2
+                        Value = "2" }
+                      { Children = Seq.empty
+                        Path = key3
+                        Value = "3" } ]
+                  Path = path
+                  Value = null }
+
+             test
+                 <@ [ key3; key1 ]
+                    |> List.map (fun k -> Bind.value (k |> ConfigPathSegment.value) Bind.int)
+                    |> Bind.allOf
+                    |> Binder.eval section = Success([ 3; 1 ]) @>)
+
+    [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
+    let ``should return Failure if any binders fail`` path key1 key2 key3 =
+        [ key1; key2; key3 ]
+        |> List.distinct
+        |> List.length = 3
+        ==> lazy
+            (let section =
+                { Children =
+                    [ { Children = Seq.empty
+                        Path = key1
+                        Value = "1" }
+                      { Children = Seq.empty
+                        Path = key2
+                        Value = "2" } ]
+                  Path = path
+                  Value = null }
+
+             test
+                 <@ [ key3; key1 ]
+                    |> List.map (fun k -> Bind.value (k |> ConfigPathSegment.value) Bind.int)
+                    |> Bind.allOf
+                    |> Binder.eval section = Failure(
+                     Errors.single (Error.keyNotFound (key3 |> ConfigPathSegment.value))
+                 ) @>)
+
+    [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
+    let ``should return all Failures if multiple binders fail`` path key1 key2 key3 =
+        [ key1; key2; key3 ]
+        |> List.distinct
+        |> List.length = 3
+        ==> lazy
+            (let section =
+                { Children =
+                    [ { Children = Seq.empty
+                        Path = key2
+                        Value = "2" } ]
+                  Path = path
+                  Value = null }
+
+             test
+                 <@ [ key3; key1 ]
+                    |> List.map (fun k -> Bind.value (k |> ConfigPathSegment.value) Bind.int)
+                    |> Bind.allOf
+                    |> Binder.eval section = Failure(
+                     Errors.AllOf(
+                         Error.keyNotFound (key3 |> ConfigPathSegment.value)
+                         +& Error.keyNotFound (key1 |> ConfigPathSegment.value)
+                     )
+                 ) @>)
+
 module Bool =
     [<Property>]
     let ``should be Success value if can be converted to bool`` value =
