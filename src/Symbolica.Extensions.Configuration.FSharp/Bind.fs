@@ -63,33 +63,39 @@ module Bind =
         |> Binder.extendOpt sectionBinder
         |> Binder.mapFailure (fun e -> Error.SectionError(key, e))
 
-    let private decode decoder : Binder<_, _, _> =
+    let private decode decoder =
         Binder (fun value ->
             decoder
             |> Binder.eval value
-            |> BindResult.mapFailure (fun error -> Error.ValueError(value, error) |> Errors.single))
+            |> BindResult.mapFailure (fun error -> Error.ValueError(value, error)))
 
     let private readValue =
         Binder (fun (section: #IConfigurationSection) ->
             if section.GetChildren() |> Seq.isEmpty then
                 section.Value |> Success
             else
-                Error.NotAValueNode |> Errors.single |> Failure)
+                Error.NotAValueNode |> Failure)
+
+    /// <summary>Binds the value of this config section with the <paramref name="decoder" />.</summary>
+    /// <param name="decoder">The binder to use when converting the string value.</param>
+    /// <returns>A binder for the value at the current config section.</returns>
+    let value decoder : Binder<'config, 'a, Errors<Error>> =
+        readValue
+        |> Binder.extend (decode decoder)
+        |> Binder.mapFailure Errors.single
 
     /// <summary>Binds the value at the <paramref name="key" /> with the <paramref name="decoder" />.</summary>
     /// <param name="key">The key whose value should be bound.</param>
     /// <param name="decoder">The binder to use when converting the string value.</param>
     /// <returns>A binder for the value at the <paramref name="key" />.</returns>
-    let valueAt key decoder : Binder<'config, 'a, Error> =
-        section key (readValue |> Binder.extend (decode decoder))
+    let valueAt key decoder : Binder<'config, 'a, Error> = section key (value decoder)
 
     /// <summary>Binds the optional value at the <paramref name="key" /> with the <paramref name="decoder" />.</summary>
     /// <remarks>If the <paramref name="key" /> does not exist or has an empty value then the binder will evaluate to <c>None</c>.</remarks>
     /// <param name="key">The key whose value should be bound.</param>
     /// <param name="decoder">The binder to use when converting the string value.</param>
     /// <returns>A binder for the optional value at the <paramref name="key" />.</returns>
-    let optValueAt key decoder : Binder<'config, 'a option, Error> =
-        optSection key (readValue |> Binder.extend (decode decoder))
+    let optValueAt key decoder : Binder<'config, 'a option, Error> = optSection key (value decoder)
 
     /// <summary>
     /// Creates a new <see cref="Binder" /> that produces a list of results from evaluating all of the <paramref name="binders" />
