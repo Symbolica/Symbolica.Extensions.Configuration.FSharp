@@ -369,6 +369,100 @@ module AnyOf =
                     |> Bind.anyOf
                     |> Binder.eval section = Success([]) @>)
 
+module OneOf =
+    type AChoice =
+        | Number of int
+        | Binary of bool
+
+    [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
+    let ``should return first success`` path key =
+
+        let section =
+            { Children =
+                [ { Children = Seq.empty
+                    Path = key
+                    Value = "1" } ]
+              Path = path
+              Value = null }
+
+        test
+            <@ (Bind.value "bool" (Bind.bool |> Binder.map Binary))
+               <|> (Bind.value (key |> ConfigPathSegment.value) (Bind.int |> Binder.map Number))
+               |> Bind.oneOf
+               |> Binder.eval section = Success(Number 1) @>
+
+    [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
+    let ``should return Failure if all alternatives fail`` path =
+        let key = "number"
+
+        let section =
+            { Children =
+                [ { Children = Seq.empty
+                    Path = ConfigPathSegment "notthekey"
+                    Value = "string" } ]
+              Path = path
+              Value = null }
+
+        test
+            <@ (Bind.value "bool" (Bind.bool |> Binder.map Binary))
+               <|> (Bind.value key (Bind.int |> Binder.map Number))
+               |> Bind.oneOf
+               |> Binder.eval section = Failure(
+                Errors.OneOf(
+                    Error.keyNotFound "bool"
+                    +| Error.keyNotFound "number"
+                )
+            ) @>
+
+module OneValueOf =
+    type AChoice =
+        | Number of int
+        | Binary of bool
+
+    [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
+    let ``should return first success`` path key =
+        let section =
+            { Children =
+                [ { Children = Seq.empty
+                    Path = key
+                    Value = "1" } ]
+              Path = path
+              Value = null }
+
+        test
+            <@ (Bind.bool |> Binder.map Binary)
+               <|> (Bind.int |> Binder.map Number)
+               |> Bind.oneValueOf
+               |> Bind.value (key |> ConfigPathSegment.value)
+               |> Binder.eval section = Success(Number 1) @>
+
+    [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
+    let ``should return Failure if all alternatives fail`` path key =
+        let section =
+            { Children =
+                [ { Children = Seq.empty
+                    Path = key
+                    Value = "string" } ]
+              Path = path
+              Value = null }
+
+        test
+            <@ (Bind.bool |> Binder.map Binary)
+               <|> (Bind.int |> Binder.map Number)
+               |> Bind.oneValueOf
+               |> Bind.value (key |> ConfigPathSegment.value)
+               |> Binder.eval section = Failure(
+                Error.valueError
+                    (key |> ConfigPathSegment.value)
+                    "string"
+                    (ValueError.Many(
+                        Errors.OneOf(
+                            ValueError.invalidType<bool>
+                            +| ValueError.invalidType<int>
+                        )
+                    ))
+            ) @>
+
 module Bool =
     [<Property>]
     let ``should be Success value if can be converted to bool`` value =
