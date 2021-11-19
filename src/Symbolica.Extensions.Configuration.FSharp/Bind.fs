@@ -121,6 +121,26 @@ module Bind =
 
             List.foldBack folder binders [] |> Success)
 
+    /// <summary>
+    /// Takes a <see cref="Binder" /> that can fail with <see cref="AltErrors" /> and maps it to <see cref="Errors" />.
+    /// </summary>
+    /// <remarks>
+    /// To create the <paramref name="binders" /> use the <c>&lt;|&gt;</c> operator. E.g. <c>oneOf (binderA &lt;|&gt; binderB)</c>.
+    /// </remarks>
+    let oneOf binders =
+        binders |> Binder.mapFailure Errors.OneOf
+
+    /// <summary>
+    /// Takes a <see cref="Binder" /> that can fail with <see cref="AltErrors" /> and maps it to <see cref="ValueError.Many" />.
+    /// </summary>
+    /// <remarks>
+    /// To create the <paramref name="binders" /> use the <c>&lt;|&gt;</c> operator. E.g. <c>oneOf (binderA &lt;|&gt; binderB)</c>.
+    /// </remarks>
+    let oneValueOf binders =
+        binders
+        |> oneOf
+        |> Binder.mapFailure ValueError.Many
+
     /// <summary>Creates a <see cref="Binder" /> from a System.Type.TryParse style parsing function.</summary>
     /// <remarks>
     /// Useful for creating a parser for a primitive type for which a <c>TryParse</c> function already exists.
