@@ -92,6 +92,41 @@ module OptSection =
             <@ Bind.optSection (key |> ConfigPathSegment.value) Binder.ask
                |> Binder.eval (path |> SectionStub.Empty) = Success(None) @>
 
+module Value =
+    [<Property(Arbitrary = [| typeof<Arb.NotNullString>
+                              typeof<ConfigurationArb> |])>]
+    let ``when value exists and is not null should be Success value`` path x =
+        let section =
+            { Children = Seq.empty
+              Path = path
+              Value = x }
+
+        test <@ Bind.value Bind.string |> Binder.eval section = Success(x) @>
+
+    [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
+    let ``when value cannot be decoded should be Failure`` path =
+        let section =
+            { Children = Seq.empty
+              Path = path
+              Value = "string" }
+
+        test
+            <@ Bind.value Bind.int |> Binder.eval section = Failure(
+                Errors.single (Error.ValueError("string", ValueError.invalidType<int>))
+            ) @>
+
+    [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
+    let ``when section has children should be Failure`` path key =
+        let section =
+            { Children =
+                [ { Children = Seq.empty
+                    Path = key
+                    Value = "Value" } ]
+              Path = path
+              Value = null }
+
+        test <@ Bind.value Bind.string |> Binder.eval section = Failure(Errors.single Error.NotAValueNode) @>
+
 module ValueAt =
     [<Property(Arbitrary = [| typeof<Arb.NotNullString>
                               typeof<ConfigurationArb> |])>]
