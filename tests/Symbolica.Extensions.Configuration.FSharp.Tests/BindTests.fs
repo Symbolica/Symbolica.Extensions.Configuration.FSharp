@@ -92,7 +92,7 @@ module OptSection =
             <@ Bind.optSection (key |> ConfigPathSegment.value) Binder.ask
                |> Binder.eval (path |> SectionStub.Empty) = Success(None) @>
 
-module Value =
+module ValueAt =
     [<Property(Arbitrary = [| typeof<Arb.NotNullString>
                               typeof<ConfigurationArb> |])>]
     let ``when value exists and is not null should be Success value`` path key x =
@@ -105,7 +105,7 @@ module Value =
               Value = null }
 
         test
-            <@ Bind.value (key |> ConfigPathSegment.value) Bind.string
+            <@ Bind.valueAt (key |> ConfigPathSegment.value) Bind.string
                |> Binder.eval section = Success(x) @>
 
     [<Property(Arbitrary = [| typeof<Arb.NotNullString>
@@ -122,7 +122,7 @@ module Value =
         let missingKey = $"notthe{key |> ConfigPathSegment.value}"
 
         test
-            <@ Bind.value missingKey Bind.string
+            <@ Bind.valueAt missingKey Bind.string
                |> Binder.eval section = Failure(Error.keyNotFound missingKey) @>
 
     [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
@@ -136,7 +136,7 @@ module Value =
               Value = null }
 
         test
-            <@ Bind.value (key |> ConfigPathSegment.value) Bind.string
+            <@ Bind.valueAt (key |> ConfigPathSegment.value) Bind.string
                |> Binder.eval section = Failure(Error.keyNotFound (key |> ConfigPathSegment.value)) @>
 
     [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
@@ -150,7 +150,7 @@ module Value =
               Value = null }
 
         test
-            <@ Bind.value (key |> ConfigPathSegment.value) Bind.int
+            <@ Bind.valueAt (key |> ConfigPathSegment.value) Bind.int
                |> Binder.eval section = Failure(Error.invalidType<int> (key |> ConfigPathSegment.value) "string") @>
 
     [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
@@ -167,10 +167,10 @@ module Value =
               Value = null }
 
         test
-            <@ Bind.value (key |> ConfigPathSegment.value) Bind.string
+            <@ Bind.valueAt (key |> ConfigPathSegment.value) Bind.string
                |> Binder.eval section = Failure(Error.notAValueNode (key |> ConfigPathSegment.value)) @>
 
-module OptValue =
+module OptValueAt =
     [<Property(Arbitrary = [| typeof<Arb.NotNullString>
                               typeof<ConfigurationArb> |])>]
     let ``when value exists and is not null should be Success(Some(value))`` path key x =
@@ -183,7 +183,7 @@ module OptValue =
               Value = null }
 
         test
-            <@ Bind.optValue (key |> ConfigPathSegment.value) Bind.string
+            <@ Bind.optValueAt (key |> ConfigPathSegment.value) Bind.string
                |> Binder.eval section = Success(Some(x)) @>
 
     [<Property(Arbitrary = [| typeof<Arb.NotNullString>
@@ -200,7 +200,7 @@ module OptValue =
         let missingKey = $"notthe{key |> ConfigPathSegment.value}"
 
         test
-            <@ Bind.optValue missingKey Bind.string
+            <@ Bind.optValueAt missingKey Bind.string
                |> Binder.eval section = Success(None) @>
 
     [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
@@ -214,7 +214,7 @@ module OptValue =
               Value = null }
 
         test
-            <@ Bind.optValue (key |> ConfigPathSegment.value) Bind.string
+            <@ Bind.optValueAt (key |> ConfigPathSegment.value) Bind.string
                |> Binder.eval section = Success(None) @>
 
     [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
@@ -228,7 +228,7 @@ module OptValue =
               Value = null }
 
         test
-            <@ Bind.optValue (key |> ConfigPathSegment.value) Bind.int
+            <@ Bind.optValueAt (key |> ConfigPathSegment.value) Bind.int
                |> Binder.eval section = Failure(Error.invalidType<int> (key |> ConfigPathSegment.value) "string") @>
 
     [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
@@ -245,7 +245,7 @@ module OptValue =
               Value = null }
 
         test
-            <@ Bind.optValue (key |> ConfigPathSegment.value) Bind.string
+            <@ Bind.optValueAt (key |> ConfigPathSegment.value) Bind.string
                |> Binder.eval section = Failure(Error.notAValueNode (key |> ConfigPathSegment.value)) @>
 
 module AllOf =
@@ -271,7 +271,7 @@ module AllOf =
 
              test
                  <@ [ key3; key1 ]
-                    |> List.map (fun k -> Bind.value (k |> ConfigPathSegment.value) Bind.int)
+                    |> List.map (fun k -> Bind.valueAt (k |> ConfigPathSegment.value) Bind.int)
                     |> Bind.allOf
                     |> Binder.eval section = Success([ 3; 1 ]) @>)
 
@@ -294,7 +294,7 @@ module AllOf =
 
              test
                  <@ [ key3; key1 ]
-                    |> List.map (fun k -> Bind.value (k |> ConfigPathSegment.value) Bind.int)
+                    |> List.map (fun k -> Bind.valueAt (k |> ConfigPathSegment.value) Bind.int)
                     |> Bind.allOf
                     |> Binder.eval section = Failure(
                      Errors.single (Error.keyNotFound (key3 |> ConfigPathSegment.value))
@@ -316,7 +316,7 @@ module AllOf =
 
              test
                  <@ [ key3; key1 ]
-                    |> List.map (fun k -> Bind.value (k |> ConfigPathSegment.value) Bind.int)
+                    |> List.map (fun k -> Bind.valueAt (k |> ConfigPathSegment.value) Bind.int)
                     |> Bind.allOf
                     |> Binder.eval section = Failure(
                      Errors.AllOf(
@@ -345,7 +345,7 @@ module AnyOf =
 
              test
                  <@ [ key2; key3; key1 ]
-                    |> List.map (fun k -> Bind.value (k |> ConfigPathSegment.value) Bind.int)
+                    |> List.map (fun k -> Bind.valueAt (k |> ConfigPathSegment.value) Bind.int)
                     |> Bind.anyOf
                     |> Binder.eval section = Success([ 3; 1 ]) @>)
 
@@ -365,7 +365,7 @@ module AnyOf =
 
              test
                  <@ [ key3; key1 ]
-                    |> List.map (fun k -> Bind.value (k |> ConfigPathSegment.value) Bind.int)
+                    |> List.map (fun k -> Bind.valueAt (k |> ConfigPathSegment.value) Bind.int)
                     |> Bind.anyOf
                     |> Binder.eval section = Success([]) @>)
 
@@ -386,8 +386,8 @@ module OneOf =
               Value = null }
 
         test
-            <@ (Bind.value "bool" (Bind.bool |> Binder.map Binary))
-               <|> (Bind.value (key |> ConfigPathSegment.value) (Bind.int |> Binder.map Number))
+            <@ (Bind.valueAt "bool" (Bind.bool |> Binder.map Binary))
+               <|> (Bind.valueAt (key |> ConfigPathSegment.value) (Bind.int |> Binder.map Number))
                |> Bind.oneOf
                |> Binder.eval section = Success(Number 1) @>
 
@@ -404,8 +404,8 @@ module OneOf =
               Value = null }
 
         test
-            <@ (Bind.value "bool" (Bind.bool |> Binder.map Binary))
-               <|> (Bind.value key (Bind.int |> Binder.map Number))
+            <@ (Bind.valueAt "bool" (Bind.bool |> Binder.map Binary))
+               <|> (Bind.valueAt key (Bind.int |> Binder.map Number))
                |> Bind.oneOf
                |> Binder.eval section = Failure(
                 Errors.OneOf(
@@ -433,7 +433,7 @@ module OneValueOf =
             <@ (Bind.bool |> Binder.map Binary)
                <|> (Bind.int |> Binder.map Number)
                |> Bind.oneValueOf
-               |> Bind.value (key |> ConfigPathSegment.value)
+               |> Bind.valueAt (key |> ConfigPathSegment.value)
                |> Binder.eval section = Success(Number 1) @>
 
     [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
@@ -450,7 +450,7 @@ module OneValueOf =
             <@ (Bind.bool |> Binder.map Binary)
                <|> (Bind.int |> Binder.map Number)
                |> Bind.oneValueOf
-               |> Bind.value (key |> ConfigPathSegment.value)
+               |> Bind.valueAt (key |> ConfigPathSegment.value)
                |> Binder.eval section = Failure(
                 Error.valueError
                     (key |> ConfigPathSegment.value)
