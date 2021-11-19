@@ -147,6 +147,13 @@ module Bind =
         |> oneOf
         |> Binder.mapFailure ValueError.Many
 
+    /// <summary>
+    /// Retrieves the child sections from the current <see cref="IConfiguration" /> section.
+    /// </summary>
+    let children<'c, 'e when 'c :> IConfiguration> : Binder<'c, IConfigurationSection seq, 'e> =
+        Binder.ask
+        |> Binder.map (fun section -> section.GetChildren())
+
     /// <summary>Creates a <see cref="Binder" /> from a System.Type.TryParse style parsing function.</summary>
     /// <remarks>
     /// Useful for creating a parser for a primitive type for which a <c>TryParse</c> function already exists.
