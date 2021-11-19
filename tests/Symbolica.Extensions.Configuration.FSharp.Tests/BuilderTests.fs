@@ -16,8 +16,8 @@ type Options =
 let mkOptions config =
     let bindSubOptions =
         bind {
-            let! optionalNumber = Bind.optValue "MaybeDecimal" Bind.float
-            and! bool = Bind.value "bool" Bind.bool
+            let! optionalNumber = Bind.optValueAt "MaybeDecimal" Bind.float
+            and! bool = Bind.valueAt "bool" Bind.bool
 
             return
                 { OptionalNumber = optionalNumber
@@ -27,7 +27,7 @@ let mkOptions config =
     Bind.section
         "Options"
         (bind {
-            let! name = Bind.value "Name" Bind.string
+            let! name = Bind.valueAt "Name" Bind.string
             and! subOptions = Bind.section "Sub" bindSubOptions
             and! optSubOptions = Bind.optSection "OptSub" bindSubOptions
 

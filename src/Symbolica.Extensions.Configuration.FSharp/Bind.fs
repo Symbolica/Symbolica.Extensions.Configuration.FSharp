@@ -80,7 +80,7 @@ module Bind =
     /// <param name="key">The key whose value should be bound.</param>
     /// <param name="decoder">The binder to use when converting the string value.</param>
     /// <returns>A binder for the value at the <paramref name="key" />.</returns>
-    let value key decoder : Binder<'config, 'a, Error> =
+    let valueAt key decoder : Binder<'config, 'a, Error> =
         section key (readValue |> Binder.extend (decode decoder))
 
     /// <summary>Binds the optional value at the <paramref name="key" /> with the <paramref name="decoder" />.</summary>
@@ -88,7 +88,7 @@ module Bind =
     /// <param name="key">The key whose value should be bound.</param>
     /// <param name="decoder">The binder to use when converting the string value.</param>
     /// <returns>A binder for the optional value at the <paramref name="key" />.</returns>
-    let optValue key decoder : Binder<'config, 'a option, Error> =
+    let optValueAt key decoder : Binder<'config, 'a option, Error> =
         optSection key (readValue |> Binder.extend (decode decoder))
 
     /// <summary>
