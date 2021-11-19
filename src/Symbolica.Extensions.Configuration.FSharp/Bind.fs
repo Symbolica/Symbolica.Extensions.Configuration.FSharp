@@ -91,6 +91,19 @@ module Bind =
     let optValue key decoder : Binder<'config, 'a option, Error> =
         optSection key (readValue |> Binder.extend (decode decoder))
 
+    /// <summary>
+    /// Creates a new <see cref="Binder" /> that produces a list of results from evaluating all of the <paramref name="binders" />
+    /// with the same configuration.
+    /// </summary>
+    /// <remarks>
+    /// All must complete with <c>Success</c> in order for the new <see cref="Binder" /> to be a <c>Success</c>.
+    /// If any fail then this new <see cref="Binder" /> will evaluate to a <c>Failure</c> containing all of the errors.
+    /// </remarks>
+    let allOf binders =
+        binders
+        |> Binder.traverseList (Binder.mapFailure ApplicativeErrors.single)
+        |> Binder.mapFailure Errors.AllOf
+
     /// <summary>Creates a <see cref="Binder" /> from a System.Type.TryParse style parsing function.</summary>
     /// <remarks>
     /// Useful for creating a parser for a primitive type for which a <c>TryParse</c> function already exists.
