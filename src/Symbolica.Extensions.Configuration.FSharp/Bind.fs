@@ -1,6 +1,7 @@
 namespace Symbolica.Extensions.Configuration.FSharp
 
 open System
+open System.Collections.Generic
 open Microsoft.Extensions.Configuration
 
 type Bind() =
@@ -34,14 +35,9 @@ module Bind =
     /// <param name="key">The key of the child section to which the <paramref name="sectionBinder" /> should be bound.</param>
     /// <param name="sectionBinder">The binder that binds the child section to some type.</param>
     /// <returns>A binder for the section at the <paramref name="key" />.</returns>
-    let section key sectionBinder =
-        Binder (fun (parent: #IConfiguration) ->
-            let section = parent.GetSection(key)
-
-            if section.Exists() then
-                Success section
-            else
-                Error.KeyNotFound |> Errors.single |> Failure)
+    let section key (sectionBinder: Binder<_, 'a, Errors<Error>>) =
+        Config.section key
+        |> Binder.mapFailure Errors.single
         |> Binder.extend sectionBinder
         |> Binder.mapFailure (fun e -> Error.SectionError(key, e))
 
@@ -51,15 +47,7 @@ module Bind =
     /// <param name="sectionBinder">The binder that binds the child section to some type.</param>
     /// <returns>A binder for the section at the <paramref name="key" />.</returns>
     let optSection key sectionBinder =
-        Binder (fun (parent: #IConfiguration) ->
-            let section = parent.GetSection(key)
-
-            Success(
-                if section.Exists() then
-                    Some section
-                else
-                    None
-            ))
+        Config.optSection key
         |> Binder.extendOpt sectionBinder
         |> Binder.mapFailure (fun e -> Error.SectionError(key, e))
 
@@ -69,18 +57,11 @@ module Bind =
             |> Binder.eval value
             |> BindResult.mapFailure (fun error -> Error.ValueError(value, error)))
 
-    let private readValue =
-        Binder (fun (section: #IConfigurationSection) ->
-            if section.GetChildren() |> Seq.isEmpty then
-                section.Value |> Success
-            else
-                Error.NotAValueNode |> Failure)
-
     /// <summary>Binds the value of this config section with the <paramref name="decoder" />.</summary>
     /// <param name="decoder">The binder to use when converting the string value.</param>
     /// <returns>A binder for the value at the current config section.</returns>
     let value decoder : Binder<'config, 'a, Errors<Error>> =
-        readValue
+        Config.value
         |> Binder.extend (decode decoder)
         |> Binder.mapFailure Errors.single
 
@@ -146,13 +127,6 @@ module Bind =
         binders
         |> oneOf
         |> Binder.mapFailure ValueError.Many
-
-    /// <summary>
-    /// Retrieves the child sections from the current <see cref="IConfiguration" /> section.
-    /// </summary>
-    let children<'c, 'e when 'c :> IConfiguration> : Binder<'c, IConfigurationSection seq, 'e> =
-        Binder.ask
-        |> Binder.map (fun section -> section.GetChildren())
 
     /// <summary>Creates a <see cref="Binder" /> from a System.Type.TryParse style parsing function.</summary>
     /// <remarks>

@@ -13,6 +13,7 @@
     <Compile Include="BindResult.fs" />
     <Compile Include="Binder.fs" />
     <Compile Include="Error.fs" />
+    <Compile Include="Config.fs" />
     <Compile Include="Bind.fs" />
   </ItemGroup>
 </Project>

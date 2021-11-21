@@ -125,7 +125,7 @@ module Value =
               Path = path
               Value = null }
 
-        test <@ Bind.value Bind.string |> Binder.eval section = Failure(Errors.single Error.NotAValueNode) @>
+        test <@ Bind.value Bind.string |> Binder.eval section = Failure(Errors.single (Error.NotAValueNode)) @>
 
 module ValueAt =
     [<Property(Arbitrary = [| typeof<Arb.NotNullString>
@@ -497,27 +497,6 @@ module OneValueOf =
                         )
                     ))
             ) @>
-
-module Children =
-    [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
-    let ``should be Success children`` childPaths path value =
-        let children =
-            childPaths
-            |> List.map (fun p ->
-                { Children = Seq.empty
-                  Path = p
-                  Value = null }
-                :> IConfigurationSection)
-
-        let section =
-            { Children = children |> Seq.ofList
-              Path = path
-              Value = value }
-
-        test
-            <@ Bind.children
-               |> Binder.eval section
-               |> BindResult.map List.ofSeq = Success(children) @>
 
 module Bool =
     [<Property>]

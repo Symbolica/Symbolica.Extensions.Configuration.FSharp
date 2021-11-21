@@ -20,6 +20,7 @@
     <Compile Include="BinderTests.fs" />
     <Compile Include="ErrorTests.fs" />
     <Compile Include="SectionStub.fs" />
+    <Compile Include="ConfigTests.fs" />
     <Compile Include="BindTests.fs" />
     <Compile Include="BuilderTests.fs" />
   </ItemGroup>
