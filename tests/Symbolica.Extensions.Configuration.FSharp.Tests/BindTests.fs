@@ -678,6 +678,94 @@ module Dict =
                 )
             ) @>
 
+module List =
+
+    type CustomType = { Prop: int }
+
+    [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
+    let ``should be success ordered by keys if all values can be decoded`` path =
+        let section =
+            { Children =
+                [ { Children = Seq.empty
+                    Path = "foo" |> ConfigPathSegment
+                    Value = "foo" }
+                  { Children = Seq.empty
+                    Path = "bar" |> ConfigPathSegment
+                    Value = "bar" }
+                  { Children = Seq.empty
+                    Path = "4" |> ConfigPathSegment
+                    Value = "4" }
+                  { Children = Seq.empty
+                    Path = "0" |> ConfigPathSegment
+                    Value = "0" }
+                  { Children = Seq.empty
+                    Path = "1" |> ConfigPathSegment
+                    Value = "1" } ]
+              Path = path
+              Value = null }
+
+        test
+            <@ Bind.list (Bind.value Bind.string)
+               |> Binder.eval section = Success["0"
+                                                "1"
+                                                "4"
+                                                "bar"
+                                                "foo"] @>
+
+    [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
+    let ``should be success if key and complex value can be decoded`` path key value =
+        let bindCustomType =
+            bind {
+                let! prop = Bind.valueAt "prop" Bind.int
+                return { Prop = prop }
+            }
+
+        let section =
+            { Children =
+                [ { Children =
+                      [ { Children = Seq.empty
+                          Path = "prop" |> ConfigPathSegment
+                          Value = value |> string } ]
+                    Path = key
+                    Value = null } ]
+              Path = path
+              Value = null }
+
+        test <@ Bind.list bindCustomType |> Binder.eval section = Success[{ Prop = value }] @>
+
+    [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
+    let ``should be failure if any value cannot be decoded`` path =
+        let section =
+            { Children =
+                [ { Children = Seq.empty
+                    Path = "1" |> ConfigPathSegment
+                    Value = "foo" }
+                  { Children = Seq.empty
+                    Path = "2" |> ConfigPathSegment
+                    Value = "bar" }
+                  { Children = Seq.empty
+                    Path = "3" |> ConfigPathSegment
+                    Value = "true" } ]
+              Path = path
+              Value = null }
+
+        test
+            <@ Bind.list (Bind.value Bind.bool)
+               |> Binder.eval section = Failure(
+                Error.Many(
+                    Errors.AllOf(
+                        Error.SectionError(
+                            "1",
+                            Error.Many(Errors.single (Error.ValueError("foo", ValueError.invalidType<bool>)))
+                        )
+                        +& Error.SectionError(
+                            "2",
+                            Error.Many(Errors.single (Error.ValueError("bar", ValueError.invalidType<bool>)))
+                        )
+                    )
+                )
+            ) @>
+
 module Bool =
     [<Property>]
     let ``should be Success value if can be converted to bool`` value =
