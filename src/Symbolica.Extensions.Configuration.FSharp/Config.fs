@@ -45,7 +45,7 @@ let key: Binder<'config, string, _> =
 /// <summary>
 /// A <see cref="Binder" /> that retrieves the value from the current <see cref="IConfiguration" /> section.
 /// </summary>
-/// <remarks>Will evaluate to <c>Failuer</c> if this section is not a value and has children.</remarks>
+/// <remarks>Will evaluate to <c>Failure</c> if this section is not a value and has children.</remarks>
 let value =
     Binder (fun (section: #IConfigurationSection) ->
         if section.GetChildren() |> Seq.isEmpty then

@@ -1,8 +1,6 @@
 namespace Symbolica.Extensions.Configuration.FSharp
 
 open System
-open System.Collections.Generic
-open Microsoft.Extensions.Configuration
 
 type Bind() =
     member _.Bind(x: Binder<_, _, _>, f) = x |> Binder.bind f

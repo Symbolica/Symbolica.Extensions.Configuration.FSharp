@@ -125,7 +125,7 @@ module Value =
               Path = path
               Value = null }
 
-        test <@ Bind.value Bind.string |> Binder.eval section = Failure(Errors.single (Error.NotAValueNode)) @>
+        test <@ Bind.value Bind.string |> Binder.eval section = Failure(Errors.single Error.NotAValueNode) @>
 
 module ValueAt =
     [<Property(Arbitrary = [| typeof<Arb.NotNullString>
