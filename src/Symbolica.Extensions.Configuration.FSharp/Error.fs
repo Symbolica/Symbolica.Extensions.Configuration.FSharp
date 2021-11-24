@@ -177,7 +177,8 @@ module ValueError =
 /// <remarks>Anything that has a key is a section and a section may either have child sections or a string value.</remarks>
 [<RequireQualifiedAccess>]
 type Error =
-    | SectionError of key: string * Errors<Error>
+    | SectionError of key: string * Error
+    | Many of Errors<Error>
     | ValueError of value: string * ValueError
     | NotAValueNode
     | KeyNotFound
@@ -194,14 +195,19 @@ type Error =
 
     member x.ToString(indent) =
         (match x with
-         | SectionError (key, errors) -> [ $"@'{key}'\n{errors.ToString(indent + 1, (fun i x -> x.ToString(i)))}" ]
+         | SectionError (key, error) ->
+             $"@'{key}':\n{error.ToString(indent + 1)}"
+             |> String.indent indent
+         | Many errors -> errors.ToString(indent, (fun i x -> x.ToString(i)))
          | ValueError (value, error) ->
-             [ $"Value: {value}"
+             [ $"Value: '{value}'"
                $"Error:\n{error.ToString(indent + 1)}" ]
-         | NotAValueNode -> [ "Expected a value, but found a section with children." ]
-         | KeyNotFound -> [ "The key was not found." ])
-        |> Seq.map (String.indent indent)
-        |> String.concat "\n"
+             |> List.map (String.indent indent)
+             |> String.concat "\n"
+         | NotAValueNode ->
+             "Expected a value, but found a section with children."
+             |> String.indent indent
+         | KeyNotFound -> "The key was not found." |> String.indent indent)
 
     override x.ToString() = x.ToString(0)
 
@@ -220,19 +226,19 @@ module Error =
     /// <summary>Shorthand for creating a <c>Error.KeyNotFound</c> for a given key.</summary>
     /// <paramref name="key">The key that was not found.</paramref>
     let keyNotFound key =
-        Error.SectionError(key, Errors.single Error.KeyNotFound)
+        Error.SectionError(key, Error.KeyNotFound)
 
     /// <summary>Shorthand for creating a <c>Error.NotAValueNode</c> for a given key.</summary>
     /// <paramref name="key">The key that was expected to contain a simple string value.</paramref>
     let notAValueNode key =
-        Error.SectionError(key, Errors.single Error.NotAValueNode)
+        Error.SectionError(key, Error.NotAValueNode)
 
     /// <summary>Shorthand for creating a <c>Error.ValueError</c> for a given key and value.</summary>
     /// <paramref name="key">The key for which there was an error.</paramref>
     /// <paramref name="value">The value for which there was an error.</paramref>
     /// <paramref name="error">The error.</paramref>
     let valueError key value error =
-        Error.SectionError(key, Error.ValueError(value, error) |> Errors.single)
+        Error.SectionError(key, Error.ValueError(value, error))
 
     /// <summary>Shorthand for <c>valueError key value ValueError.invalidType&lt;'a&gt;</c>.</summary>
     /// <paramref name="key">The key for which the type conversion was invalid.</paramref>
