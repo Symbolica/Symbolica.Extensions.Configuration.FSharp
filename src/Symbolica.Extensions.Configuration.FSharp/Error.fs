@@ -1,5 +1,7 @@
 namespace Symbolica.Extensions.Configuration.FSharp
 
+open System
+
 module private String =
     let indent by string =
         $"""{" " |> String.replicate (2 * by)}{string}"""
@@ -111,9 +113,9 @@ type Errors<'a> =
         let printedErrors =
             errors
             |> List.map (printItem (indent + 1))
-            |> String.concat "\n"
+            |> String.concat Environment.NewLine
 
-        $"{key |> String.indent indent}:\n{printedErrors}"
+        $"{key |> String.indent indent}:{Environment.NewLine}{printedErrors}"
 
 module Errors =
     /// <summary>Maps the errors contained within the <see cref="Errors" />.</summary>
@@ -196,14 +198,14 @@ type Error =
     member x.ToString(indent) =
         (match x with
          | SectionError (key, error) ->
-             $"@'{key}':\n{error.ToString(indent + 1)}"
+             $"@'{key}':{Environment.NewLine}{error.ToString(indent + 1)}"
              |> String.indent indent
          | Many errors -> errors.ToString(indent, (fun i x -> x.ToString(i)))
          | ValueError (value, error) ->
              [ $"Value: '{value}'"
-               $"Error:\n{error.ToString(indent + 1)}" ]
+               $"Error:{Environment.NewLine}{error.ToString(indent + 1)}" ]
              |> List.map (String.indent indent)
-             |> String.concat "\n"
+             |> String.concat Environment.NewLine
          | NotAValueNode ->
              "Expected a value, but found a section with children."
              |> String.indent indent

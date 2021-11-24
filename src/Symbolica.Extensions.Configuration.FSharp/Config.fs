@@ -9,7 +9,7 @@ open Microsoft.Extensions.Configuration
 /// <summary>
 /// A <see cref="Binder" /> that retrieves the section specified by the <paramref name="key" />.
 /// </summary>
-/// <remarks>Will evaluate to <c>Failure</c> if the <pararef name="key" /> cannot be found.</remarks>
+/// <remarks>Will evaluate to <c>Failure</c> if the <paramref name="key" /> cannot be found.</remarks>
 /// <param name="key">The key of the child section to retrieve.</param>
 let section key : Binder<'config, IConfigurationSection, Error> =
     Binder (fun (parent: #IConfiguration) ->
@@ -23,7 +23,7 @@ let section key : Binder<'config, IConfigurationSection, Error> =
 /// <summary>
 /// A <see cref="Binder" /> that retrieves the optional section specified by the <paramref name="key" />.
 /// </summary>
-/// <remarks>Will evaluate to <c>Success(None)</c> if the <pararef name="key" /> cannot be found.</remarks>
+/// <remarks>Will evaluate to <c>Success(None)</c> if the <paramref name="key" /> cannot be found.</remarks>
 /// <param name="key">The key of the child section to retrieve.</param>
 let optSection key =
     Binder (fun (parent: #IConfiguration) ->
