@@ -35,9 +35,7 @@ module Section =
 
         let keyValue = key |> ConfigPathSegment.value
 
-        let error =
-            Error.invalidType<int> keyValue "Value"
-            |> Errors.single
+        let error = Error.invalidType<int> keyValue "Value"
 
         test
             <@ Bind.section keyValue (error |> Binder.fail)
@@ -78,9 +76,7 @@ module OptSection =
 
         let keyValue = key |> ConfigPathSegment.value
 
-        let error =
-            Error.invalidType<int> keyValue "Value"
-            |> Errors.single
+        let error = Error.invalidType<int> keyValue "Value"
 
         test
             <@ Bind.optSection keyValue (error |> Binder.fail)
@@ -112,7 +108,7 @@ module Value =
 
         test
             <@ Bind.value Bind.int |> Binder.eval section = Failure(
-                Errors.single (Error.ValueError("string", ValueError.invalidType<int>))
+                Error.ValueError("string", ValueError.invalidType<int>)
             ) @>
 
     [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
@@ -125,7 +121,7 @@ module Value =
               Path = path
               Value = null }
 
-        test <@ Bind.value Bind.string |> Binder.eval section = Failure(Errors.single Error.NotAValueNode) @>
+        test <@ Bind.value Bind.string |> Binder.eval section = Failure(Error.NotAValueNode) @>
 
 module ValueAt =
     [<Property(Arbitrary = [| typeof<Arb.NotNullString>
@@ -332,7 +328,7 @@ module AllOf =
                     |> List.map (fun k -> Bind.valueAt (k |> ConfigPathSegment.value) Bind.int)
                     |> Bind.allOf
                     |> Binder.eval section = Failure(
-                     Errors.single (Error.keyNotFound (key3 |> ConfigPathSegment.value))
+                     Error.Many(Errors.single (Error.keyNotFound (key3 |> ConfigPathSegment.value)))
                  ) @>)
 
     [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
@@ -354,9 +350,11 @@ module AllOf =
                     |> List.map (fun k -> Bind.valueAt (k |> ConfigPathSegment.value) Bind.int)
                     |> Bind.allOf
                     |> Binder.eval section = Failure(
-                     Errors.AllOf(
-                         Error.keyNotFound (key3 |> ConfigPathSegment.value)
-                         +& Error.keyNotFound (key1 |> ConfigPathSegment.value)
+                     Error.Many(
+                         Errors.AllOf(
+                             Error.keyNotFound (key3 |> ConfigPathSegment.value)
+                             +& Error.keyNotFound (key1 |> ConfigPathSegment.value)
+                         )
                      )
                  ) @>)
 
@@ -443,9 +441,11 @@ module OneOf =
                <|> (Bind.valueAt key (Bind.int |> Binder.map Number))
                |> Bind.oneOf
                |> Binder.eval section = Failure(
-                Errors.OneOf(
-                    Error.keyNotFound "bool"
-                    +| Error.keyNotFound "number"
+                Error.Many(
+                    Errors.OneOf(
+                        Error.keyNotFound "bool"
+                        +| Error.keyNotFound "number"
+                    )
                 )
             ) @>
 

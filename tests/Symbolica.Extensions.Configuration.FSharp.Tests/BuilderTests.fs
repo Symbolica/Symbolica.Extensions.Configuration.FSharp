@@ -130,9 +130,11 @@ let ``should fail when non optional config missing`` () =
         Failure(
             Error.SectionError(
                 "Options",
-                Errors.AllOf(
-                    Error.keyNotFound "Name"
-                    +& Error.keyNotFound "Sub"
+                Error.Many(
+                    Errors.AllOf(
+                        Error.keyNotFound "Name"
+                        +& Error.keyNotFound "Sub"
+                    )
                 )
             )
         )
