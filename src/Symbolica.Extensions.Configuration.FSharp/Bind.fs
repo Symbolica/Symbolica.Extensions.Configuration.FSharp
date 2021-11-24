@@ -154,8 +154,7 @@ module Bind =
 
     /// <summary>
     /// Binds an <see cref="IConfigurationSection" /> as an <see cref="IDictionary" /> by applying the
-    /// <paramref name="keyBinder" /> to the key and the <paramref name="valueBinder" /> to the value
-    /// of each child section.
+    /// <paramref name="keyBinder" /> to the key and the <paramref name="valueBinder" /> to each child section.
     /// </summary>
     /// <param name="keyBinder">
     /// The <see cref="Binder" /> to apply to the key of each child section in order to convert it to the key type.
@@ -184,6 +183,23 @@ module Bind =
         )
         |> Binder.mapFailure (Errors.AllOf >> Error.Many)
         |> Binder.map (fun x -> Dictionary(x) :> IDictionary<'key, 'value>)
+
+    /// <summary>
+    /// Binds an <see cref="IConfigurationSection" /> as a <see cref="List" /> by applying the
+    /// the <paramref name="valueBinder" /> to each child section.
+    /// </summary>
+    /// <param name="valueBinder">
+    /// The <see cref="Binder" /> to apply to each child section in order to convert it to the key type.
+    /// Note this can be either a simple value binder or a binder for a more complex type that spans
+    /// multiple child sections.
+    /// </param>
+    let list (valueBinder: Binder<IConfigurationSection, 'value, Error>) : Binder<'config, 'value list, Error> =
+        dict Binder.ask valueBinder
+        |> Binder.map (
+            Seq.sortBy (fun x -> x.Key)
+            >> Seq.map (fun x -> x.Value)
+            >> List.ofSeq
+        )
 
     /// <summary>Creates a <see cref="Binder" /> from a System.Type.TryParse style parsing function.</summary>
     /// <remarks>
