@@ -498,6 +498,186 @@ module OneValueOf =
                     ))
             ) @>
 
+module KeyValuePair =
+
+    type CustomType = { Prop: int }
+
+    [<Property>]
+    let ``should be success if key and simple value can be decoded`` key value =
+        let section =
+            { Children = Seq.empty
+              Path = key |> string |> ConfigPathSegment
+              Value = value |> string }
+
+        test
+            <@ Bind.keyValuePair Bind.int (Bind.value Bind.bool)
+               |> Binder.eval section
+               |> BindResult.map (|KeyValue|) = Success(key, value) @>
+
+    [<Property>]
+    let ``should be success if key and complex value can be decoded`` key value =
+        let bindCustomType =
+            bind {
+                let! prop = Bind.valueAt "prop" Bind.int
+                return { Prop = prop }
+            }
+
+        let section =
+            { Children =
+                [ { Children = Seq.empty
+                    Path = "prop" |> ConfigPathSegment
+                    Value = value |> string } ]
+              Path = key |> string |> ConfigPathSegment
+              Value = null }
+
+        test
+            <@ Bind.keyValuePair Bind.int bindCustomType
+               |> Binder.eval section
+               |> BindResult.map (|KeyValue|) = Success(key, { Prop = value }) @>
+
+    [<Property>]
+    let ``should be failure if the key cannot be decoded`` (value: bool) =
+        let section =
+            { Children = Seq.empty
+              Path = "key" |> ConfigPathSegment
+              Value = value |> string }
+
+        test
+            <@ Bind.keyValuePair Bind.int (Bind.value Bind.bool)
+               |> Binder.eval section = Failure(
+                Error.Many(Errors.single (Error.ValueError("key", ValueError.invalidType<int>)))
+            ) @>
+
+    [<Property>]
+    let ``should be failure if the value cannot be decoded`` (key: int) =
+        let section =
+            { Children = Seq.empty
+              Path = key |> string |> ConfigPathSegment
+              Value = "value" }
+
+        test
+            <@ Bind.keyValuePair Bind.int (Bind.value Bind.bool)
+               |> Binder.eval section = Failure(
+                Error.Many(Errors.single (Error.ValueError("value", ValueError.invalidType<bool>)))
+            ) @>
+
+    [<Fact>]
+    let ``should be failure if the key and value cannot be decoded`` () =
+        let section =
+            { Children = Seq.empty
+              Path = "key" |> ConfigPathSegment
+              Value = "value" }
+
+        test
+            <@ Bind.keyValuePair Bind.int (Bind.value Bind.bool)
+               |> Binder.eval section = Failure(
+                Error.Many(
+                    Errors.AllOf(
+                        Error.ValueError("key", ValueError.invalidType<int>)
+                        +& Error.ValueError("value", ValueError.invalidType<bool>)
+                    )
+                )
+            ) @>
+
+module Dict =
+
+    type CustomType = { Prop: int }
+
+    [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
+    let ``should be success if all keys and values can be decoded`` path =
+        let section =
+            { Children =
+                [ { Children = Seq.empty
+                    Path = "1" |> ConfigPathSegment
+                    Value = "true" } ]
+              Path = path
+              Value = null }
+
+        test
+            <@ Bind.dict Bind.int (Bind.value Bind.bool)
+               |> Binder.eval section
+               |> BindResult.map (Seq.map (|KeyValue|) >> List.ofSeq) = Success[1, true] @>
+
+    [<Property>]
+    let ``should be success if key and complex value can be decoded`` path key value =
+        let bindCustomType =
+            bind {
+                let! prop = Bind.valueAt "prop" Bind.int
+                return { Prop = prop }
+            }
+
+        let section =
+            { Children =
+                [ { Children =
+                      [ { Children = Seq.empty
+                          Path = "prop" |> ConfigPathSegment
+                          Value = value |> string } ]
+                    Path = key |> string |> ConfigPathSegment
+                    Value = null } ]
+              Path = path
+              Value = null }
+
+        test
+            <@ Bind.dict Bind.int bindCustomType
+               |> Binder.eval section
+               |> BindResult.map (Seq.map (|KeyValue|) >> List.ofSeq) = Success[key, { Prop = value }] @>
+
+    [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
+    let ``should be failure if any key cannot be decoded`` path =
+        let section =
+            { Children =
+                [ { Children = Seq.empty
+                    Path = "foo" |> ConfigPathSegment
+                    Value = "true" } ]
+              Path = path
+              Value = null }
+
+        test
+            <@ Bind.dict Bind.int (Bind.value Bind.bool)
+               |> Binder.eval section = Failure(
+                Error.Many(
+                    Errors.single (
+                        Error.SectionError(
+                            "foo",
+                            Error.Many(Errors.single (Error.ValueError("foo", ValueError.invalidType<int>)))
+                        )
+                    )
+                )
+            ) @>
+
+    [<Property(Arbitrary = [| typeof<ConfigurationArb> |])>]
+    let ``should be failure if any value cannot be decoded`` path =
+        let section =
+            { Children =
+                [ { Children = Seq.empty
+                    Path = "1" |> ConfigPathSegment
+                    Value = "foo" }
+                  { Children = Seq.empty
+                    Path = "2" |> ConfigPathSegment
+                    Value = "bar" }
+                  { Children = Seq.empty
+                    Path = "3" |> ConfigPathSegment
+                    Value = "true" } ]
+              Path = path
+              Value = null }
+
+        test
+            <@ Bind.dict Bind.int (Bind.value Bind.bool)
+               |> Binder.eval section = Failure(
+                Error.Many(
+                    Errors.AllOf(
+                        Error.SectionError(
+                            "1",
+                            Error.Many(Errors.single (Error.ValueError("foo", ValueError.invalidType<bool>)))
+                        )
+                        +& Error.SectionError(
+                            "2",
+                            Error.Many(Errors.single (Error.ValueError("bar", ValueError.invalidType<bool>)))
+                        )
+                    )
+                )
+            ) @>
+
 module Bool =
     [<Property>]
     let ``should be Success value if can be converted to bool`` value =

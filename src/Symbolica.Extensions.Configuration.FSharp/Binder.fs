@@ -56,7 +56,7 @@ module Binder =
     /// <param name="f">The function to which the value will be applied.</param>
     /// <param name="a">The value to be applied to the function.</param>
     /// <returns>A <see cref="Binder" /> containing the result of applying the value to the function.</returns>
-    let apply (f: Binder<'config, 'a -> 'b, 'e>) (a: Binder<'config, 'a, 'e>) : Binder<'config, 'b, 'e> =
+    let apply (f: Binder<'config, 'a -> 'b, 'e1>) (a: Binder<'config, 'a, 'e2>) : Binder<'config, 'b, 'e> =
         Binder (fun config ->
             a
             |> eval config
@@ -78,7 +78,7 @@ module Binder =
     /// The first <see cref="Binder" /> that evaluates to <c>Success</c> or a new <see cref="Binder" />
     /// which evaluates to a <c>Failure</c> containing both errors.
     /// </returns>
-    let alt (x: Binder<_, _, 'e1>) (y: Binder<_, _, 'e2>) : Binder<_, _, 'e3> =
+    let alt (x: Binder<_, _, 'e1>) (y: Binder<_, _, 'e2>) : Binder<_, _, 'e> =
         Binder (fun config ->
             match x |> eval config with
             | Success a -> Success a
@@ -136,7 +136,7 @@ module Binder =
     /// <summary>
     /// Runs the binder generating function <paramref name="f"/> on each element of the list creating a binder of a list.
     /// </summary>
-    let rec traverseList (f: 'a -> Binder<'config, 'b, 'e>) (list: 'a list) : Binder<'config, 'b list, 'e> =
+    let rec traverseList (f: 'a -> Binder<'config, 'b, _>) (list: 'a list) : Binder<'config, 'b list, _> =
         let cons head tail = head :: tail
         let (<!>) = map
         let (<*>) = apply
