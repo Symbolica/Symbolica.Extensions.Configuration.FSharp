@@ -184,7 +184,7 @@ If you want to see a more sophisticated example then check out the [IntegrationT
 ## Creating New Binders
 
 At the heart of this library is the `Binder<'config, 'value', 'error>` type.
-It is nothing more than a simple wrapper around a function that takes some config as input it and returns a `BindResult`.
+It is nothing more than a simple wrapper around a function that takes some config as input and returns a `BindResult`.
 In order to bind your custom type from configuration you need to create an instance of a `Binder<IConfiguration, YourOptionsType, Error>`.
 
 You can create a binder by just writing `Binder(fun config -> // parse config and return a BindResult)`, however, in practice you don't usually create `Binder` instances directly.
